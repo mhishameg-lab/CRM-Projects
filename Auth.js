@@ -1,5 +1,5 @@
 // =============================================================================
-// Auth.gs — ICO Center Portal | Authentication & Session Management Easy Track
+// Auth.gs — ICO Center Portal | Authentication & Session Management Easy Track I edited
 // =============================================================================
 
 function _sessionKey(token) { return 'sess_' + token; }
