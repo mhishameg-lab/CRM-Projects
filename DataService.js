@@ -1,5 +1,7 @@
 // =============================================================================
 // DataService.gs — ICO Center Portal | Data Access & Business Logic
+
+// we still need to do a lot of invancement to reach a good SaaS service anyone can use
 // =============================================================================
 
 // ─── SOURCE DATA RETRIEVAL (cached) ──────────────────────────────────────────
