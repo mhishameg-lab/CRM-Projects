@@ -1446,8 +1446,8 @@ function renderLeadsTable(leads) {
       '<td class="name-cell">' + esc(l.fullName || '—') + '</td>' +
       '<td class="phone-cell">' + esc(l.phone || '—') + '</td>' +
       '<td>' + leadStatusBadge(l.leadStatus) + '</td>' +
-      '<td>' + chaserStatusBadge(l.chaserStatus) + '</td>' +
-      '<td>' + processingStatusBadge(l.processingStatusCenters, processingTooltip) + '</td>' +
+      '<td>' + chaserStatusBadge(l.chaserStatus, processingTooltip) + '</td>' +
+      '<td>' + processingStatusBadge(l.processingStatusCenters) + '</td>' +
       (isAdmin ? '<td class="mono" style="font-size:12px;">' + esc(l.centerCode || '—') + '</td>' : '') +
       '<td>' + (l.leadType ? '<span class="badge badge-info">' + esc(l.leadType) + '</span>' : '—') + '</td>' +
       '</tr>';
@@ -2721,29 +2721,29 @@ function leadStatusBadge(val) {
   return '<span class="badge badge-trash">' + esc(v) + '</span>';
 }
 
-function chaserStatusBadge(val) {
-  if (!val || !String(val).trim()) return '';
-  var v = String(val).trim();
-  if (PROD_CHASER_SIGNED.indexOf(v) !== -1) {
-    return '<span class="badge badge-approved">✓ ' + esc(v) + '</span>';
-  }
-  if (PROD_CHASER_POTENTIAL.indexOf(v) !== -1) {
-    return '<span class="badge badge-potential">⏳ ' + esc(v) + '</span>';
-  }
-  return '<span class="badge badge-trash">' + esc(v) + '</span>';
-}
-
-function processingStatusBadge(val, tooltip) {
+function chaserStatusBadge(val, tooltip) {
   if (!val || !String(val).trim()) return '';
   var v = String(val).trim();
   var t = tooltip && String(tooltip).trim();
   var titleAttr = t ? ' title="' + esc(t) + '"' : '';
+  if (PROD_CHASER_SIGNED.indexOf(v) !== -1) {
+    return '<span class="badge badge-approved"' + titleAttr + '>✓ ' + esc(v) + '</span>';
+  }
+  if (PROD_CHASER_POTENTIAL.indexOf(v) !== -1) {
+    return '<span class="badge badge-potential"' + titleAttr + '>⏳ ' + esc(v) + '</span>';
+  }
+  return '<span class="badge badge-trash"' + titleAttr + '>' + esc(v) + '</span>';
+}
+
+function processingStatusBadge(val) {
+  if (!val || !String(val).trim()) return '';
+  var v = String(val).trim();
   var u = v.toUpperCase();
-  if (u === 'APPROVED')     return '<span class="badge badge-approved"' + titleAttr + '>💰 ' + esc(v) + '</span>';
-  if (u === 'IN PROCESS')   return '<span class="badge badge-inprocess"' + titleAttr + '>⚙ ' + esc(v) + '</span>';
-  if (u === 'DENIED')       return '<span class="badge badge-denied"' + titleAttr + '>✗ ' + esc(v) + '</span>';
-  if (u === 'SHIPPED RTS')  return '<span class="badge badge-rts"' + titleAttr + '>⚠ ' + esc(v) + '</span>';
-  return '<span class="badge badge-neutral"' + titleAttr + '>' + esc(v) + '</span>';
+  if (u === 'APPROVED')     return '<span class="badge badge-approved">💰 ' + esc(v) + '</span>';
+  if (u === 'IN PROCESS')   return '<span class="badge badge-inprocess">⚙ ' + esc(v) + '</span>';
+  if (u === 'DENIED')       return '<span class="badge badge-denied">✗ ' + esc(v) + '</span>';
+  if (u === 'SHIPPED RTS')  return '<span class="badge badge-rts">⚠ ' + esc(v) + '</span>';
+  return '<span class="badge badge-neutral">' + esc(v) + '</span>';
 }
 
 function actionBadge(action) {
