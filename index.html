@@ -1,0 +1,3054 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ICO Center Portal</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <?!= include('CSS') ?>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════
+     LOGIN PAGE
+════════════════════════════════════════════════════════════ -->
+<div id="login-page">
+  <div class="login-container">
+    <div class="login-logo">
+      <div class="login-logo-icon">🌀</div>
+      <div>
+        <div class="login-logo-text">ICO Center Portal</div>
+        <span class="login-logo-sub">Secure · Scalable · Smart</span>
+      </div>
+    </div>
+
+    <div class="login-card">
+      <h1>Welcome back</h1>
+      <p class="sub">Sign in to access your CRM dashboard</p>
+
+      <div id="login-error" class="login-error">
+        <i class="fa-solid fa-circle-exclamation"></i>
+        <span id="login-error-msg">Invalid credentials</span>
+      </div>
+
+      <div class="form-group">
+        <label for="inp-user">Username</label>
+        <div class="input-wrap">
+          <i class="fa-solid fa-user inp-icon"></i>
+          <input id="inp-user" type="text" class="inp" placeholder="Enter your username" autocomplete="username">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="inp-pass">Password</label>
+        <div class="input-wrap">
+          <i class="fa-solid fa-lock inp-icon"></i>
+          <input id="inp-pass" type="password" class="inp" placeholder="Enter your password" autocomplete="current-password">
+          <i class="fa-solid fa-eye toggle-pw" id="toggle-pw" title="Show/hide password"></i>
+        </div>
+      </div>
+
+      <button id="btn-login" class="btn btn-primary btn-full" onclick="doLogin()">
+        <i class="fa-solid fa-arrow-right-to-bracket"></i>
+        Sign In
+      </button>
+
+      <p style="margin-top:18px;font-size:12px;color:var(--text-muted);text-align:center;">
+        Sessions expire after 8 hours · All activity is logged
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     LOGOUT CONFIRMATION MODAL
+════════════════════════════════════════════════════════════ -->
+<div id="logout-modal" class="modal-overlay hidden" onclick="if(event.target===this)closeLogoutModal()">
+  <div class="confirm-modal-box">
+    <div class="confirm-icon">🚪</div>
+    <div class="confirm-title">Sign Out?</div>
+    <div class="confirm-msg">You'll need to sign in again to access your dashboard. Any unsaved data will be lost.</div>
+    <div class="confirm-actions">
+      <button class="btn btn-ghost" onclick="closeLogoutModal()">Stay Signed In</button>
+      <button class="btn btn-danger" onclick="confirmLogout()">
+        <i class="fa-solid fa-right-from-bracket"></i> Sign Out
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     APP SHELL
+════════════════════════════════════════════════════════════ -->
+<div id="app-shell" class="hidden">
+
+  <!-- ── SIDEBAR ─────────────────────────────────────────── -->
+  <div id="sidebar">
+    <div class="sidebar-logo" onclick="showLogoutConfirm()" title="Click to sign out">
+      <div class="sidebar-logo-icon">🌀</div>
+      <div>
+        <span class="sidebar-logo-text" id="sidebar-title">ICO</span>
+        <span class="sidebar-logo-sub" id="sidebar-subtitle">Center Portal</span>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Main</div>
+
+
+      <div class="nav-item" data-view="insights" onclick="showView('insights')">
+        <i class="fa-solid fa-chart-pie nav-icon"></i>
+        <span class="nav-label">Insights</span>
+      </div>
+
+      <div class="nav-item" data-view="chat" onclick="showView('chat')">
+        <i class="fa-solid fa-comments nav-icon"></i>
+        <span class="nav-label">Messages</span>
+        <span class="nav-badge hidden" id="chat-nav-badge">0</span>
+      </div>
+
+      <div class="nav-section-label">Sources</div>
+
+      <div class="nav-item active" data-view="dashboard" onclick="showView('dashboard')">
+        <i class="fa-solid fa-file-waveform nav-icon"></i>
+        <span class="nav-label">LG Leads</span>
+      </div>
+
+      <div class="nav-item" data-view="pcp" onclick="showView('pcp')">
+        <i class="fa-solid fa-stethoscope nav-icon"></i>
+        <span class="nav-label">PCP Leads</span>
+      </div>
+
+      <div class="nav-section-label admin-only hidden">Admin</div>
+
+      <div class="nav-item admin-only hidden" data-view="incentives" onclick="showView('incentives')">
+        <i class="fa-solid fa-trophy nav-icon"></i>
+        <span class="nav-label">Incentives</span>
+      </div>
+
+      <div class="nav-item admin-only hidden" data-view="users" onclick="showView('users')">
+        <i class="fa-solid fa-users-gear nav-icon"></i>
+        <span class="nav-label">User Management</span>
+      </div>
+
+      <div class="nav-item admin-only hidden" data-view="activity" onclick="showView('activity')">
+        <i class="fa-solid fa-clock-rotate-left nav-icon"></i>
+        <span class="nav-label">Activity Log</span>
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user" onclick="showLogoutConfirm()" title="Click to sign out">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <div class="user-info">
+          <div class="user-name" id="user-name-display">—</div>
+          <div class="user-role" id="user-role-display">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MAIN CONTENT ────────────────────────────────────── -->
+  <div id="main-content">
+
+    <!-- TOP BAR -->
+    <div id="topbar">
+      <button class="topbar-toggle" onclick="toggleSidebar()" title="Toggle sidebar">
+        <i class="fa-solid fa-bars"></i>
+      </button>
+      <span class="topbar-breadcrumb" id="topbar-title">Dashboard</span>
+
+      <div class="topbar-spacer"></div>
+
+      <!-- Search (visible on dashboard only) -->
+      <div class="search-wrap" id="topbar-search">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input class="search-input" id="global-search" type="text"
+               placeholder="Search leads…" oninput="onSearchInput(this.value)">
+      </div>
+
+      <div class="topbar-actions">
+        <!-- Notifications -->
+        <button class="notif-btn" onclick="toggleNotifPanel()" title="Notifications">
+          <i class="fa-solid fa-bell"></i>
+          <span class="notif-dot" id="notif-dot"></span>
+        </button>
+
+        <!-- Theme Toggle -->
+        <button class="theme-btn" onclick="toggleTheme()" title="Toggle dark mode">
+          <i class="fa-solid fa-moon" id="theme-icon"></i>
+        </button>
+
+        <!-- Logout -->
+        <button class="btn btn-ghost btn-sm" onclick="showLogoutConfirm()">
+          <i class="fa-solid fa-right-from-bracket"></i>
+          <span class="nav-label">Logout</span>
+        </button>
+      </div>
+    </div><!-- /topbar -->
+
+    <!-- VIEW CONTAINER -->
+    <div id="view-container">
+
+      <!-- ════════════════════════════════════════════════
+           VIEW: DASHBOARD
+      ═════════════════════════════════════════════════ -->
+      <div id="view-dashboard" class="view active">
+        <div class="page-header">
+          <div>
+            <div class="page-title" id="dashboard-title">Leads <span>Insights</span></div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <button class="btn btn-webform" onclick="openWebform()" title="Submit new lead">
+              <i class="fa-solid fa-file-medical"></i>
+              <span>Submit Lead</span>
+            </button>
+            <button class="btn btn-ghost btn-sm" onclick="refreshAll()" title="Refresh">
+              <i class="fa-solid fa-rotate-right"></i> Refresh
+            </button>
+          </div>
+        </div>
+
+        <!-- Incentive Banner (injected dynamically) -->
+        <div id="incentive-banner-container"></div>
+
+        <!-- Stats Row -->
+        <div class="stats-row" id="stats-row">
+          <div class="stat-card">
+            <div class="stat-icon blue"><i class="fa-solid fa-users"></i></div>
+            <div class="stat-info">
+              <div class="stat-value" id="stat-total">—</div>
+              <div class="stat-label">Total Submitted</div>
+              <div class="stat-sub">All leads in system</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon green"><i class="fa-solid fa-circle-check"></i></div>
+            <div class="stat-info">
+              <div class="stat-value" id="stat-verified">—</div>
+              <div class="stat-label">Verified Leads</div>
+              <div class="stat-sub">PPO + Med B</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon yellow"><i class="fa-solid fa-file-signature"></i></div>
+            <div class="stat-info">
+              <div class="stat-value" id="stat-signed">—</div>
+              <div class="stat-label">Orders Signed</div>
+              <div class="stat-sub">Ready to process</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon purple"><i class="fa-solid fa-badge-check"></i></div>
+            <div class="stat-info">
+              <div class="stat-value" id="stat-approved">—</div>
+              <div class="stat-label">Approved</div>
+              <div class="stat-sub">Payable to center</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters-bar" id="filters-bar">
+          <i class="fa-solid fa-filter" style="color:var(--text-muted);font-size:13px;"></i>
+          <select class="filter-select" id="filter-lead-status" onchange="applyFilters()">
+            <option value="">All Lead Statuses</option>
+          </select>
+          <select class="filter-select" id="filter-chaser-status" onchange="applyFilters()">
+            <option value="">All Chaser Statuses</option>
+          </select>
+          <select class="filter-select" id="filter-processing" onchange="applyFilters()">
+            <option value="">All Processing</option>
+          </select>
+          <select class="filter-select admin-only hidden" id="filter-center" onchange="applyFilters()">
+            <option value="">All Centers</option>
+          </select>
+          <input class="filter-date" type="date" id="filter-date-from" onchange="applyFilters()" title="From date">
+          <input class="filter-date" type="date" id="filter-date-to" onchange="applyFilters()" title="To date">
+          <button class="btn btn-ghost btn-sm" onclick="clearFilters()">
+            <i class="fa-solid fa-xmark"></i> Clear
+          </button>
+        </div>
+
+        <!-- Table Card -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Lead Records</span>
+            <span id="table-count" style="font-size:12px;color:var(--text-muted);font-family:'DM Mono',monospace;"></span>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Patient Name</th>
+                  <th>Phone</th>
+                  <th>Lead Status</th>
+                  <th>Chaser Status</th>
+                  <th>Processing</th>
+                  <th class="admin-only hidden">Center</th>
+                  <th>Lead Type</th>
+                </tr>
+              </thead>
+              <tbody id="leads-tbody">
+                <tr><td colspan="8"><div class="loading-overlay"><div class="spinner"></div></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <!-- Pagination -->
+          <div class="pagination" id="pagination">
+            <span class="pagination-info" id="pagination-info">—</span>
+            <div class="pagination-btns" id="pagination-btns"></div>
+          </div>
+        </div>
+      </div><!-- /view-dashboard -->
+
+      <!-- ════════════════════════════════════════════════
+           VIEW: INSIGHTS
+      ═════════════════════════════════════════════════ -->
+      <div id="view-insights" class="view">
+        <div class="page-header">
+          <div class="page-title">Performance <span>Intelligence</span></div>
+          <div style="display:flex;gap:10px;align-items:center;">
+            <input class="filter-date" type="date" id="ins-date-from">
+            <input class="filter-date" type="date" id="ins-date-to">
+            <button class="btn btn-primary btn-sm" onclick="loadInsights()">
+              <i class="fa-solid fa-chart-bar"></i> Apply
+            </button>
+          </div>
+        </div>
+ 
+        <div id="insights-loading" class="loading-overlay"><div class="spinner"></div></div>
+ 
+        <div id="charts-container" class="hidden">
+ 
+          <!-- Alert Zone (dynamic) -->
+          <div id="insights-alerts"></div>
+ 
+          <!-- ── LG LEADS ───────────────────────────────────────── -->
+ 
+          <!-- Quality Metrics Row -->
+          <div class="section-header">
+            <div class="section-title">🎯 LG Leads — Production Scorecard</div>
+            <div class="section-subtitle">Your performance at a glance · 5 key quality signals</div>
+          </div>
+          <div class="quality-row" id="quality-cards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px;"></div>
+ 
+          <!-- Weekly Production Tracking — LG -->
+          <div class="section-header">
+            <div class="section-title">📅 LG Leads — Weekly Production</div>
+            <div class="section-subtitle">Last 3 weeks · Minimum target: 10 leads/week</div>
+          </div>
+          <div class="card" style="margin-bottom:20px;">
+            <div class="card-body">
+              <div id="weekly-lg-container"></div>
+            </div>
+          </div>
+ 
+          <!-- Production Funnel -->
+          <div class="section-header">
+            <div class="section-title">📊 Lead Pipeline Funnel</div>
+            <div class="section-subtitle">From submission to payment — where your leads stand</div>
+          </div>
+          <div class="card" style="margin-bottom:20px;">
+            <div class="card-body">
+              <div class="funnel-container" id="funnel-container"></div>
+            </div>
+          </div>
+ 
+          <!-- Charts Grid -->
+          <div class="section-header">
+            <div class="section-title">📈 Detailed Breakdown</div>
+          </div>
+          <div class="charts-grid">
+            <!-- Lead Status -->
+            <div class="chart-card">
+              <div class="chart-title">Lead Status Distribution</div>
+              <div class="chart-subtitle">Production vs. Trash — quality starts here</div>
+              <div class="chart-wrap"><canvas id="chart-lead-status"></canvas></div>
+            </div>
+ 
+            <!-- Chaser Status -->
+            <div class="chart-card">
+              <div class="chart-title">Documentation Pipeline</div>
+              <div class="chart-subtitle">Signed orders & high-potential leads in our hands</div>
+              <div class="chart-wrap"><canvas id="chart-chaser-status"></canvas></div>
+            </div>
+ 
+            <!-- Processing Status -->
+            <div class="chart-card">
+              <div class="chart-title">Processing Status</div>
+              <div class="chart-subtitle">Approved → your earnings; RTS → a red flag</div>
+              <div class="chart-wrap"><canvas id="chart-processing"></canvas></div>
+            </div>
+ 
+            <!-- RTS Gauge -->
+            <div class="chart-card">
+              <div class="chart-title">RTS Rate Monitor</div>
+              <div class="chart-subtitle">From returned DOs — target: below 15%</div>
+              <div class="rts-gauge-wrap" id="rts-gauge-wrap">
+                <canvas id="chart-rts-gauge" width="200" height="120"></canvas>
+                <div class="rts-gauge-label" id="rts-gauge-label"></div>
+                <div class="rts-gauge-zone">
+                  <span class="zone-item"><span class="zone-dot" style="background:var(--success);"></span>0–7% Safe</span>
+                  <span class="zone-item"><span class="zone-dot" style="background:var(--warning);"></span>7–15% Watch</span>
+                  <span class="zone-item"><span class="zone-dot" style="background:var(--danger);"></span>15%+ Critical</span>
+                </div>
+              </div>
+            </div>
+ 
+            <!-- Centers bar (admin) -->
+            <div class="chart-card admin-only hidden">
+              <div class="chart-title">Leads by Center</div>
+              <div class="chart-subtitle">Volume comparison across all centers</div>
+              <div class="chart-wrap"><canvas id="chart-centers"></canvas></div>
+            </div>
+ 
+            <!-- Time Line -->
+            <div class="chart-card wide">
+              <div class="chart-title">Leads Over Time</div>
+              <div class="chart-subtitle">Submission volume trend — consistency is king</div>
+              <div class="chart-wrap tall"><canvas id="chart-time"></canvas></div>
+            </div>
+          </div>
+ 
+          <!-- Order Conversion Detail -->
+          <div class="section-header">
+            <div class="section-title">⏱ 45-Day Order Conversion</div>
+            <div class="section-subtitle">We expect 25%–30% of leads older than 45 days to reach "Order Signed"</div>
+          </div>
+          <div class="card" style="margin-bottom:20px;">
+            <div class="card-body" id="conversion-detail"></div>
+          </div>
+ 
+          <!-- ── PCP LEADS ──────────────────────────────────────── -->
+ 
+          <div class="section-header" style="margin-top:12px;">
+            <div class="section-title">🏥 PCP Leads — Order Analysis</div>
+            <div class="section-subtitle">Approval, denial & RTS breakdown across all PCP submissions</div>
+          </div>
+          <div class="card" style="margin-bottom:20px;">
+            <div class="card-body">
+              <div id="pcp-section"></div>
+            </div>
+          </div>
+ 
+        </div><!-- /charts-container -->
+      </div><!-- /view-insights -->
+ 
+
+      <!-- ════════════════════════════════════════════════
+           VIEW: CHAT
+      ═════════════════════════════════════════════════ -->
+      <div id="view-chat" class="view">
+        <?!= include('ChatView') ?>
+      </div>
+
+      <!-- ════════════════════════════════════════════════
+           VIEW: INCENTIVES (admin)
+      ═════════════════════════════════════════════════ -->
+      <div id="view-incentives" class="view">
+        <div class="page-header">
+          <div class="page-title">Incentives <span>& Motivation</span></div>
+        </div>
+
+        <!-- Create Form -->
+        <div class="card" style="margin-bottom:20px;">
+          <div class="card-header">
+            <span class="card-title"><i class="fa-solid fa-plus" style="margin-right:6px;color:var(--accent-primary);"></i>Create New Incentive</span>
+          </div>
+          <div class="card-body">
+            <div class="form-row" style="margin-bottom:14px;">
+              <div>
+                <label class="form-label">🏆 Prize / Reward</label>
+                <input class="form-input" id="inc-prize" type="text" placeholder="e.g. $500 Bonus, Amazon Gift Card">
+              </div>
+              <div>
+                <label class="form-label">🎯 Weekly Target</label>
+                <input class="form-input" id="inc-target" type="text" placeholder="e.g. 50 Verified Leads">
+              </div>
+            </div>
+            <div class="form-row" style="margin-bottom:14px;">
+              <div>
+                <label class="form-label">📋 Rules</label>
+                <textarea class="form-textarea" id="inc-rules" placeholder="Describe the rules and conditions…"></textarea>
+              </div>
+              <div>
+                <label class="form-label">👥 Who Is Included</label>
+                <input class="form-input" id="inc-who" type="text" placeholder="e.g. All Centers, Top 5 Centers">
+              </div>
+            </div>
+            <button class="btn btn-primary" onclick="submitCreateIncentive()">
+              <i class="fa-solid fa-trophy"></i> Create Incentive
+            </button>
+          </div>
+        </div>
+
+        <!-- Incentives Table -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">All Incentives</span>
+            <button class="btn btn-ghost btn-sm" onclick="loadIncentives()">
+              <i class="fa-solid fa-rotate-right"></i> Refresh
+            </button>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Prize</th>
+                  <th>Target</th>
+                  <th>Rules</th>
+                  <th>Who</th>
+                  <th>Status</th>
+                  <th>Created</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="incentives-tbody">
+                <tr><td colspan="7"><div class="loading-overlay"><div class="spinner"></div></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div><!-- /view-incentives -->
+
+      <!-- ════════════════════════════════════════════════
+           VIEW: USERS (admin)
+      ═════════════════════════════════════════════════ -->
+      <div id="view-users" class="view">
+        <div class="page-header">
+          <div class="page-title">User <span>Management</span></div>
+        </div>
+
+        <div class="card" style="margin-bottom:20px;">
+          <div class="card-header">
+            <span class="card-title"><i class="fa-solid fa-user-plus" style="margin-right:6px;color:var(--accent-primary);"></i>Create New User</span>
+          </div>
+          <div class="card-body">
+            <div class="form-row" style="margin-bottom:14px;">
+              <div>
+                <label class="form-label">Username / Center Code</label>
+                <input class="form-input" id="new-username" type="text" placeholder="e.g. CENTER01">
+              </div>
+              <div>
+                <label class="form-label">Password</label>
+                <input class="form-input" id="new-password" type="password" placeholder="Minimum 6 characters">
+              </div>
+            </div>
+            <div class="form-row">
+              <div>
+                <label class="form-label">Role</label>
+                <select class="form-select" id="new-role">
+                  <option value="center">Center</option>
+                  <option value="closer">Closer</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+              <div style="display:flex;align-items:flex-end;">
+                <button class="btn btn-primary" onclick="submitCreateUser()">
+                  <i class="fa-solid fa-plus"></i> Create User
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card users-table">
+          <div class="card-header">
+            <span class="card-title">All Users</span>
+            <button class="btn btn-ghost btn-sm" onclick="loadUsers()">
+              <i class="fa-solid fa-rotate-right"></i> Refresh
+            </button>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Username</th>
+                  <th>Role</th>
+                  <th>Status</th>
+                  <th>Created At</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="users-tbody">
+                <tr><td colspan="5"><div class="loading-overlay"><div class="spinner"></div></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div><!-- /view-users -->
+
+      <!-- ════════════════════════════════════════════════
+           VIEW: ACTIVITY LOG (admin)
+      ═════════════════════════════════════════════════ -->
+      <div id="view-activity" class="view">
+        <div class="page-header">
+          <div class="page-title">Activity <span>Log</span></div>
+          <button class="btn btn-ghost btn-sm" onclick="loadActivityLog()">
+            <i class="fa-solid fa-rotate-right"></i> Refresh
+          </button>
+        </div>
+
+        <div class="card">
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Timestamp</th>
+                  <th>User</th>
+                  <th>Action</th>
+                  <th>Details</th>
+                </tr>
+              </thead>
+              <tbody id="activity-tbody">
+                <tr><td colspan="4"><div class="loading-overlay"><div class="spinner"></div></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div><!-- /view-activity -->
+
+<!-- ════════════════════════════════════════════════
+           VIEW: PCP LEADS
+      ═════════════════════════════════════════════════ -->
+      <div id="view-pcp" class="view">
+        <div class="page-header">
+          <div>
+            <div class="page-title">PCP <span>Processing Leads</span></div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <button class="btn btn-ghost btn-sm" onclick="pcpRefresh()">
+              <i class="fa-solid fa-rotate-right"></i> Refresh
+            </button>
+          </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-row" id="pcp-stats-row">
+          <div class="stat-card">
+            <div class="stat-icon blue"><i class="fa-solid fa-users"></i></div>
+            <div class="stat-info">
+              <div class="stat-value" id="pcp-stat-total">—</div>
+              <div class="stat-label">Total Records</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon green"><i class="fa-solid fa-circle-check"></i></div>
+            <div class="stat-info">
+              <div class="stat-value" id="pcp-stat-approved">—</div>
+              <div class="stat-label">Approved</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon yellow"><i class="fa-solid fa-spinner"></i></div>
+            <div class="stat-info">
+              <div class="stat-value" id="pcp-stat-inprocess">—</div>
+              <div class="stat-label">In Process</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon red"><i class="fa-solid fa-circle-xmark"></i></div>
+            <div class="stat-info">
+              <div class="stat-value" id="pcp-stat-denied">—</div>
+              <div class="stat-label">Denied</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters-bar">
+          <i class="fa-solid fa-filter" style="color:var(--text-muted);font-size:13px;"></i>
+          <div class="search-wrap" style="width:220px;">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input class="search-input" id="pcp-search" type="text"
+                   placeholder="Search PCP leads…" oninput="pcpOnSearch(this.value)">
+          </div>
+          <select class="filter-select" id="pcp-filter-proc" onchange="pcpApplyFilters()">
+            <option value="">All Processing Status</option>
+            <option value="APPROVED">Approved</option>
+            <option value="IN PROCESS">In Process</option>
+            <option value="DENIED">Denied</option>
+          </select>
+          <select class="filter-select admin-only hidden" id="pcp-filter-center" onchange="pcpApplyFilters()">
+            <option value="">All Centers</option>
+          </select>
+          <button class="btn btn-ghost btn-sm" onclick="pcpClearFilters()">
+            <i class="fa-solid fa-xmark"></i> Clear
+          </button>
+        </div>
+
+        <!-- Table -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">PCP Records</span>
+            <span id="pcp-table-count" style="font-size:12px;color:var(--text-muted);font-family:'DM Mono',monospace;"></span>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Date</th>
+                  <th>Patient Name</th>
+                  <th>Phone</th>
+                  <th>Lead Type</th>
+                  <th>Processing Status</th>
+                  <th>SNS Result</th>
+                  <th class="admin-only hidden">Center</th>
+                </tr>
+              </thead>
+              <tbody id="pcp-tbody">
+                <tr><td colspan="8"><div class="loading-overlay"><div class="spinner"></div></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination" id="pcp-pagination">
+            <span class="pagination-info" id="pcp-pagination-info">—</span>
+            <div class="pagination-btns" id="pcp-pagination-btns"></div>
+          </div>
+        </div>
+      </div><!-- /view-pcp -->
+
+
+    </div><!-- /view-container -->
+  </div><!-- /main-content -->
+</div><!-- /app-shell -->
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     LEAD DETAIL MODAL
+════════════════════════════════════════════════════════════ -->
+<div id="lead-modal" class="modal-overlay hidden" onclick="onModalOverlayClick(event)">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div style="flex:1;">
+        <div class="modal-lead-id" id="modal-lead-id">LEAD-000000-0000</div>
+        <div class="modal-name" id="modal-lead-name">Loading…</div>
+        <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;" id="modal-badges"></div>
+      </div>
+      <button class="modal-close" onclick="closeLead()" title="Close">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <div class="modal-body" id="modal-body">
+      <!-- Tabs -->
+      <div class="modal-tabs">
+        <button class="modal-tab active" data-tab="overview" onclick="switchTab('overview')">
+          <i class="fa-solid fa-id-card" style="margin-right:5px;"></i>Overview
+        </button>
+        <button class="modal-tab" data-tab="patient" onclick="switchTab('patient')">
+          <i class="fa-solid fa-user-injured" style="margin-right:5px;"></i>Patient Info
+        </button>
+        <button class="modal-tab" data-tab="doctor" onclick="switchTab('doctor')">
+          <i class="fa-solid fa-user-doctor" style="margin-right:5px;"></i>Doctor Info
+        </button>
+        <button class="modal-tab" data-tab="notes" onclick="switchTab('notes')">
+          <i class="fa-solid fa-note-sticky" style="margin-right:5px;"></i>Notes
+          <span id="notes-count-badge" style="display:none;background:var(--accent-primary);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:999px;margin-left:4px;"></span>
+        </button>
+        <button class="modal-tab admin-only hidden" data-tab="audit" onclick="switchTab('audit')">
+          <i class="fa-solid fa-list-check" style="margin-right:5px;"></i>Audit Log
+        </button>
+      </div>
+
+      <!-- Loading -->
+      <div id="modal-loading" class="loading-overlay"><div class="spinner"></div></div>
+
+      <!-- Tab: Overview -->
+      <div class="modal-tab-pane hidden" id="tab-overview">
+        <div class="detail-grid">
+          <div class="detail-section-title"><i class="fa-solid fa-circle-info" style="margin-right:6px;"></i>Lead Information</div>
+          <div class="detail-field"><div class="detail-label">Date</div><div class="detail-value" id="d-date">—</div></div>
+          <div class="detail-field"><div class="detail-label">Center Code</div><div class="detail-value mono" id="d-center-code">—</div></div>
+          <div class="detail-field"><div class="detail-label">Center Name</div><div class="detail-value" id="d-center-name">—</div></div>
+          <div class="detail-field"><div class="detail-label">Closer Name</div><div class="detail-value" id="d-closer-name">—</div></div>
+          <div class="detail-field"><div class="detail-label">Lead Status</div><div class="detail-value" id="d-lead-status">—</div></div>
+          <div class="detail-field"><div class="detail-label">Lead Type</div><div class="detail-value" id="d-lead-type">—</div></div>
+          <div class="detail-field"><div class="detail-label">Requested Products</div><div class="detail-value" id="d-products">—</div></div>
+          <div class="detail-field"><div class="detail-label">SNS Result</div><div class="detail-value" id="d-sns">—</div></div>
+
+          <div class="detail-section-title"><i class="fa-solid fa-person-running" style="margin-right:6px;"></i>Chaser & Processing</div>
+          <div class="detail-field"><div class="detail-label">Closer Name</div><div class="detail-value" id="d-chaser-name">—</div></div>
+          <div class="detail-field"><div class="detail-label">Chaser Status</div><div class="detail-value" id="d-chaser-status">—</div></div>
+          <div class="detail-field"><div class="detail-label">Processing Status</div><div class="detail-value" id="d-proc-centers">—</div></div>
+
+          <div class="detail-section-title"><i class="fa-solid fa-file-lines" style="margin-right:6px;"></i>Notes</div>
+          <div class="detail-field" style="grid-column:1/-1;">
+            <div class="detail-label">Processing Notes</div>
+            <div class="detail-value" id="d-closing-notes" style="white-space:pre-wrap;">—</div>
+          </div>      
+          <div class="detail-field" style="grid-column:1/-1;">
+            <div class="detail-label">Chaser Note</div>
+            <div class="detail-value" id="d-chaser-note" style="white-space:pre-wrap;">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab: Patient Info (formerly Medical) -->
+      <div class="modal-tab-pane hidden" id="tab-patient">
+        <div class="detail-grid">
+          <div class="detail-section-title"><i class="fa-solid fa-user-injured" style="margin-right:6px;"></i>Personal Information</div>
+          <div class="detail-field"><div class="detail-label">First Name</div><div class="detail-value" id="d-first-name">—</div></div>
+          <div class="detail-field"><div class="detail-label">Last Name</div><div class="detail-value" id="d-last-name">—</div></div>
+          <div class="detail-field"><div class="detail-label">Date of Birth</div><div class="detail-value mono" id="d-dob">—</div></div>
+          <div class="detail-field"><div class="detail-label">Gender</div><div class="detail-value" id="d-gender">—</div></div>
+          <div class="detail-field"><div class="detail-label">Med ID</div><div class="detail-value mono" id="d-med-id">—</div></div>
+
+          <div class="detail-section-title"><i class="fa-solid fa-heart-pulse" style="margin-right:6px;"></i>Medical Measurements</div>
+          <div class="detail-field"><div class="detail-label">Height</div><div class="detail-value mono" id="d-height">—</div></div>
+          <div class="detail-field"><div class="detail-label">Weight</div><div class="detail-value mono" id="d-weight">—</div></div>
+          <div class="detail-field"><div class="detail-label">Shoe Size</div><div class="detail-value mono" id="d-shoe-size">—</div></div>
+          <div class="detail-field"><div class="detail-label">Waist Size</div><div class="detail-value mono" id="d-waist-size">—</div></div>
+
+          <div class="detail-section-title"><i class="fa-solid fa-location-dot" style="margin-right:6px;"></i>Address</div>
+          <div class="detail-field"><div class="detail-label">Phone</div><div class="detail-value mono" id="d-phone">—</div></div>
+          <div class="detail-field"><div class="detail-label">Address</div><div class="detail-value" id="d-address">—</div></div>
+          <div class="detail-field"><div class="detail-label">City</div><div class="detail-value" id="d-city">—</div></div>
+          <div class="detail-field"><div class="detail-label">State</div><div class="detail-value" id="d-state">—</div></div>
+          <div class="detail-field"><div class="detail-label">ZIP</div><div class="detail-value mono" id="d-zip">—</div></div>
+        </div>
+      </div>
+
+      <!-- Tab: Doctor Info (formerly Contact) -->
+      <div class="modal-tab-pane hidden" id="tab-doctor">
+        <div class="detail-grid">
+          <div class="detail-section-title"><i class="fa-solid fa-user-doctor" style="margin-right:6px;"></i>Doctor Information</div>
+          <div class="detail-field"><div class="detail-label">Doctor Name</div><div class="detail-value" id="d-doc-name">—</div></div>
+          <div class="detail-field"><div class="detail-label">Doctor Phone</div><div class="detail-value mono" id="d-doc-phone">—</div></div>
+          <div class="detail-field"><div class="detail-label">Doctor Fax</div><div class="detail-value mono" id="d-doc-fax">—</div></div>
+          <div class="detail-field"><div class="detail-label">Doctor NPI</div><div class="detail-value mono" id="d-doc-npi">—</div></div>
+        </div>
+      </div>
+
+      <!-- Tab: Notes -->
+      <div class="modal-tab-pane hidden" id="tab-notes">
+        <div class="notes-compose">
+          <textarea class="notes-textarea" id="note-input"
+                    placeholder="Add a note to this lead…"></textarea>
+          <div class="notes-actions">
+            <button class="btn btn-primary btn-sm" id="btn-add-note" onclick="submitNote()">
+              <i class="fa-solid fa-paper-plane"></i> Add Note
+            </button>
+          </div>
+        </div>
+        <div id="notes-list">
+          <div class="loading-overlay"><div class="spinner"></div></div>
+        </div>
+      </div>
+
+      <!-- Tab: Audit Log (admin) -->
+      <div class="modal-tab-pane hidden" id="tab-audit">
+        <div id="audit-list">
+          <div class="loading-overlay"><div class="spinner"></div></div>
+        </div>
+      </div>
+
+    </div><!-- /modal-body -->
+  </div><!-- /modal-box -->
+</div><!-- /lead-modal -->
+<!-- PCP DETAIL MODAL -->
+<div id="pcp-modal" class="modal-overlay hidden" onclick="if(event.target===this)pcpCloseModal()">
+  <div class="modal-box" style="width:900px;">
+    <div class="modal-head">
+      <div style="flex:1;">
+        <div class="modal-lead-id" id="pcp-modal-row"></div>
+        <div class="modal-name" id="pcp-modal-name">Loading…</div>
+        <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;" id="pcp-modal-badges"></div>
+      </div>
+      <button class="modal-close" onclick="pcpCloseModal()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-tabs">
+        <button class="modal-tab active" data-tab="pcp-overview" onclick="pcpSwitchTab('pcp-overview')">
+          <i class="fa-solid fa-id-card" style="margin-right:5px;"></i>Overview
+        </button>
+        <button class="modal-tab" data-tab="pcp-patient" onclick="pcpSwitchTab('pcp-patient')">
+          <i class="fa-solid fa-user-injured" style="margin-right:5px;"></i>Patient
+        </button>
+        <button class="modal-tab" data-tab="pcp-doctor" onclick="pcpSwitchTab('pcp-doctor')">
+          <i class="fa-solid fa-user-doctor" style="margin-right:5px;"></i>Doctor
+        </button>
+        <button class="modal-tab" data-tab="pcp-links" onclick="pcpSwitchTab('pcp-links')">
+          <i class="fa-solid fa-link" style="margin-right:5px;"></i>Links & Notes
+        </button>
+      </div>
+      <div id="pcp-modal-loading" class="loading-overlay"><div class="spinner"></div></div>
+
+      <!-- Overview -->
+      <div class="modal-tab-pane hidden" id="tab-pcp-overview">
+        <div class="detail-grid">
+          <div class="detail-section-title"><i class="fa-solid fa-circle-info" style="margin-right:6px;"></i>Record Info</div>
+          <div class="detail-field"><div class="detail-label">Date</div><div class="detail-value" id="pd-timestamp">—</div></div>
+          <div class="detail-field"><div class="detail-label">Center Code</div><div class="detail-value mono" id="pd-center-code">—</div></div>
+          <div class="detail-field"><div class="detail-label">Center Name</div><div class="detail-value" id="pd-center-name">—</div></div>
+          <div class="detail-field"><div class="detail-label">Closer Name</div><div class="detail-value" id="pd-closer-name">—</div></div>
+          <div class="detail-field"><div class="detail-label">Lead Type</div><div class="detail-value" id="pd-lead-type">—</div></div>
+          <div class="detail-field"><div class="detail-label">Requested Products</div><div class="detail-value" id="pd-products">—</div></div>
+          <div class="detail-field"><div class="detail-label">SNS Result</div><div class="detail-value" id="pd-sns">—</div></div>
+          <div class="detail-field"><div class="detail-label">Processing Status</div><div class="detail-value" id="pd-proc-status">—</div></div>
+          <div class="detail-field" style="grid-column:1/-1;"><div class="detail-label">DO Note (1 month+)</div><div class="detail-value" id="pd-do-note" style="white-space:pre-wrap;">—</div></div>
+        </div>
+      </div>
+
+      <!-- Patient -->
+      <div class="modal-tab-pane hidden" id="tab-pcp-patient">
+        <div class="detail-grid">
+          <div class="detail-section-title"><i class="fa-solid fa-user-injured" style="margin-right:6px;"></i>Personal</div>
+          <div class="detail-field"><div class="detail-label">First Name</div><div class="detail-value" id="pd-first-name">—</div></div>
+          <div class="detail-field"><div class="detail-label">Last Name</div><div class="detail-value" id="pd-last-name">—</div></div>
+          <div class="detail-field"><div class="detail-label">DOB</div><div class="detail-value mono" id="pd-dob">—</div></div>
+          <div class="detail-field"><div class="detail-label">Gender</div><div class="detail-value" id="pd-gender">—</div></div>
+          <div class="detail-field"><div class="detail-label">Med ID</div><div class="detail-value mono" id="pd-med-id">—</div></div>
+          <div class="detail-field"><div class="detail-label">Phone</div><div class="detail-value mono" id="pd-phone">—</div></div>
+          <div class="detail-section-title"><i class="fa-solid fa-heart-pulse" style="margin-right:6px;"></i>Measurements</div>
+          <div class="detail-field"><div class="detail-label">Height</div><div class="detail-value mono" id="pd-height">—</div></div>
+          <div class="detail-field"><div class="detail-label">Weight</div><div class="detail-value mono" id="pd-weight">—</div></div>
+          <div class="detail-field"><div class="detail-label">Shoe Size</div><div class="detail-value mono" id="pd-shoe-size">—</div></div>
+          <div class="detail-field"><div class="detail-label">Waist Size</div><div class="detail-value mono" id="pd-waist-size">—</div></div>
+          <div class="detail-section-title"><i class="fa-solid fa-location-dot" style="margin-right:6px;"></i>Address</div>
+          <div class="detail-field"><div class="detail-label">Address</div><div class="detail-value" id="pd-address">—</div></div>
+          <div class="detail-field"><div class="detail-label">City</div><div class="detail-value" id="pd-city">—</div></div>
+          <div class="detail-field"><div class="detail-label">State</div><div class="detail-value" id="pd-state">—</div></div>
+          <div class="detail-field"><div class="detail-label">ZIP</div><div class="detail-value mono" id="pd-zip">—</div></div>
+        </div>
+      </div>
+
+      <!-- Doctor -->
+      <div class="modal-tab-pane hidden" id="tab-pcp-doctor">
+        <div class="detail-grid">
+          <div class="detail-section-title"><i class="fa-solid fa-user-doctor" style="margin-right:6px;"></i>Doctor Info</div>
+          <div class="detail-field"><div class="detail-label">Doctor Name</div><div class="detail-value" id="pd-doc-name">—</div></div>
+          <div class="detail-field"><div class="detail-label">Doctor NPI</div><div class="detail-value mono" id="pd-doc-npi">—</div></div>
+          <div class="detail-field"><div class="detail-label">Doctor Phone</div><div class="detail-value mono" id="pd-doc-phone">—</div></div>
+          <div class="detail-field"><div class="detail-label">Doctor Fax</div><div class="detail-value mono" id="pd-doc-fax">—</div></div>
+          <div class="detail-field" style="grid-column:1/-1;"><div class="detail-label">Doctor Address</div><div class="detail-value" id="pd-doc-address">—</div></div>
+        </div>
+      </div>
+
+      <!-- Links & Notes -->
+      <div class="modal-tab-pane hidden" id="tab-pcp-links">
+        <div class="detail-grid">
+          <div class="detail-section-title"><i class="fa-solid fa-link" style="margin-right:6px;"></i>Document Links</div>
+          <div class="detail-field" style="grid-column:1/-1;">
+            <div class="detail-label">DO Link</div>
+            <div class="detail-value" id="pd-do-link">—</div>
+          </div>
+          <div class="detail-field" style="grid-column:1/-1;">
+            <div class="detail-label">CN Link</div>
+            <div class="detail-value" id="pd-cn-link">—</div>
+          </div>
+          <div class="detail-field" style="grid-column:1/-1;">
+            <div class="detail-label">Record Link</div>
+            <div class="detail-value" id="pd-record-link">—</div>
+          </div>
+          <div class="detail-section-title"><i class="fa-solid fa-note-sticky" style="margin-right:6px;"></i>Note</div>
+          <div class="detail-field" style="grid-column:1/-1;">
+            <div class="detail-value" id="pd-note" style="white-space:pre-wrap;background:var(--bg-surface2);padding:12px;border-radius:8px;border:1px solid var(--border);">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div><!-- /pcp-modal -->
+
+<!-- ═══════════════════════════════════════════════════════════
+     NOTIFICATION PANEL
+════════════════════════════════════════════════════════════ -->
+<div id="notif-panel">
+  <div class="notif-panel-head">
+    <span class="notif-panel-title">
+      <i class="fa-solid fa-bell" style="margin-right:6px;color:var(--accent-primary);"></i>
+      Notifications
+    </span>
+    <div class="notif-panel-actions">
+      <button class="btn btn-ghost btn-sm" onclick="markAllRead()" title="Mark all as read">
+        <i class="fa-solid fa-check-double"></i>
+      </button>
+      <button class="btn btn-ghost btn-sm" onclick="toggleNotifPanel()" title="Close">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+  </div>
+  <div class="notif-list" id="notif-list">
+    <div class="loading-overlay"><div class="spinner"></div></div>
+  </div>
+</div>
+
+<!-- Password Reset Modal -->
+<div id="pw-modal" class="modal-overlay hidden" onclick="if(event.target===this)closePwModal()">
+  <div class="modal-box" style="width:420px;">
+    <div class="modal-head">
+      <div style="flex:1;">
+        <div class="modal-name" style="font-size:16px;">Reset Password</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:2px;" id="pw-modal-username"></div>
+      </div>
+      <button class="modal-close" onclick="closePwModal()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="card-body" style="padding:20px 24px;">
+      <label class="form-label">New Password</label>
+      <input class="form-input" id="pw-new" type="password" placeholder="Enter new password" style="margin-bottom:16px;">
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button class="btn btn-ghost" onclick="closePwModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="submitResetPassword()">
+          <i class="fa-solid fa-key"></i> Reset Password
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div id="toast-container"></div>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     JAVASCRIPT
+════════════════════════════════════════════════════════════ -->
+<script>
+'use strict';
+
+// ── Application State ──────────────────────────────────────
+const APP = {
+  token      : null,
+  username   : null,
+  role       : null,
+  centerCode : null,
+  centerName : null,
+  currentView: 'dashboard',
+
+  leads: {
+    data: [], page: 1, total: 0, totalPages: 0,
+    loading: false, search: '', filters: {}
+  },
+
+  filterOptions    : {},
+  charts           : {},
+  currentLeadId    : null,
+  pwResetTarget    : null,
+  notifPollTimer   : null,
+  chatPollTimer    : null,
+  searchDebounce   : null,
+  sidebarCollapsed : false,
+  chatCenterCode   : null,   // admin: selected center thread
+};
+
+const WEBFORM_URL = 'https://script.google.com/macros/s/AKfycbxecKhXkD7fddhw0YoOleY6DDHYP7gFaqKd65onZjOnr7GqJpcthquXVfO8tqlv01kKPg/exec';
+
+const CHART_PALETTE = [
+  '#2563eb','#10b981','#f59e0b','#ef4444','#8b5cf6',
+  '#06b6d4','#f97316','#84cc16','#ec4899','#14b8a6',
+];
+
+// Production dispositions (must match DataService.gs DISPOSITIONS)
+const PROD_LEAD   = ['Verified ppo', 'Verified Med b'];
+const PROD_CHASER_SIGNED    = ['Order Signed'];
+const PROD_CHASER_POTENTIAL = ['Trial', 'Missing CN', 'Missing DO'];
+const PROC_APPROVED  = ['APPROVED'];
+const PROC_INPROCESS = ['IN PROCESS'];
+const PROC_DENIED    = ['DENIED'];
+const PROC_RTS       = ['SHIPPED RTS'];
+
+// ── Initialisation ─────────────────────────────────────────
+window.onload = function() {
+  var saved = sessionStorage.getItem('lf_token');
+  if (saved) {
+    APP.token = saved;
+    google.script.run
+      .withSuccessHandler(function(r) {
+        if (r.valid) {
+          APP.username   = r.username;
+          APP.role       = r.role;
+          APP.centerCode = r.centerCode;
+          APP.centerName = r.centerName || r.centerCode;
+          enterApp();
+        } else {
+          sessionStorage.removeItem('lf_token');
+          showLogin();
+        }
+      })
+      .withFailureHandler(function() { showLogin(); })
+      .validateSession(saved);
+  } else {
+    showLogin();
+  }
+
+  document.getElementById('inp-user').addEventListener('keydown', function(e){
+    if (e.key === 'Enter') document.getElementById('inp-pass').focus();
+  });
+  document.getElementById('inp-pass').addEventListener('keydown', function(e){
+    if (e.key === 'Enter') doLogin();
+  });
+
+  document.getElementById('toggle-pw').addEventListener('click', function(){
+    var inp  = document.getElementById('inp-pass');
+    var icon = document.getElementById('toggle-pw');
+    if (inp.type === 'password') {
+      inp.type = 'text';
+      icon.classList.replace('fa-eye','fa-eye-slash');
+    } else {
+      inp.type = 'password';
+      icon.classList.replace('fa-eye-slash','fa-eye');
+    }
+  });
+
+  // Chat textarea enter-to-send
+    var _legacyChatInput = document.getElementById('chat-input');
+    if (_legacyChatInput) {
+      _legacyChatInput.addEventListener('keydown', function(e){
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChatMessage(); }
+      });
+    }
+
+  var savedTheme = localStorage.getItem('lf_theme') || 'light';
+  setTheme(savedTheme);
+};
+
+// ── Theme ──────────────────────────────────────────────────
+function toggleTheme() {
+  var current = document.documentElement.getAttribute('data-theme');
+  setTheme(current === 'dark' ? 'light' : 'dark');
+}
+function setTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('lf_theme', theme);
+  var icon = document.getElementById('theme-icon');
+  if (icon) icon.className = theme === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+  if (Object.keys(APP.charts).length > 0) setTimeout(rerenderCharts, 50);
+}
+
+// ── Sidebar ────────────────────────────────────────────────
+function toggleSidebar() {
+  APP.sidebarCollapsed = !APP.sidebarCollapsed;
+  document.getElementById('sidebar').classList.toggle('collapsed', APP.sidebarCollapsed);
+}
+
+// ── Logout flow ────────────────────────────────────────────
+function showLogoutConfirm() {
+  document.getElementById('logout-modal').classList.remove('hidden');
+}
+function closeLogoutModal() {
+  document.getElementById('logout-modal').classList.add('hidden');
+}
+function confirmLogout() {
+  closeLogoutModal();
+  doLogout();
+}
+
+// ── Login / Logout ─────────────────────────────────────────
+function showLogin() {
+  document.getElementById('login-page').classList.remove('hidden');
+  document.getElementById('app-shell').classList.add('hidden');
+  document.getElementById('inp-user').focus();
+}
+
+function doLogin() {
+  var username = document.getElementById('inp-user').value.trim();
+  var password = document.getElementById('inp-pass').value;
+  var errBox   = document.getElementById('login-error');
+  var btn      = document.getElementById('btn-login');
+
+  if (!username || !password) {
+    showLoginError('Please enter your username and password.');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Signing in…';
+  errBox.classList.remove('show');
+
+  google.script.run
+    .withSuccessHandler(function(r) {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-arrow-right-to-bracket"></i> Sign In';
+      if (r.success) {
+        APP.token      = r.token;
+        APP.username   = r.username;
+        APP.role       = r.role;
+        APP.centerCode = r.centerCode;
+        APP.centerName = r.centerName || r.centerCode;
+        sessionStorage.setItem('lf_token', r.token);
+        enterApp();
+      } else {
+        showLoginError(r.error || 'Login failed. Please try again.');
+      }
+    })
+    .withFailureHandler(function() {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-arrow-right-to-bracket"></i> Sign In';
+      showLoginError('Server error. Please try again.');
+    })
+    .login(username, password);
+}
+
+function showLoginError(msg) {
+  document.getElementById('login-error-msg').textContent = msg;
+  document.getElementById('login-error').classList.add('show');
+  document.getElementById('inp-user').classList.add('err');
+  document.getElementById('inp-pass').classList.add('err');
+}
+
+function doLogout() {
+  var token = APP.token;
+  if (APP.notifPollTimer) clearInterval(APP.notifPollTimer);
+  if (APP.chatPollTimer)  clearInterval(APP.chatPollTimer);
+  APP.token = null;
+  sessionStorage.removeItem('lf_token');
+  document.getElementById('login-page').classList.remove('hidden');
+  document.getElementById('app-shell').classList.add('hidden');
+  APP.username = null; APP.role = null; APP.centerCode = null; APP.centerName = null;
+  document.getElementById('inp-pass').value = '';
+  if (token) google.script.run.logout(token);
+}
+
+function openWebform() {
+  window.open(WEBFORM_URL, '_blank');
+}
+
+// ── App Entry ──────────────────────────────────────────────
+function enterApp() {
+  document.getElementById('login-page').classList.add('hidden');
+  document.getElementById('app-shell').classList.remove('hidden');
+
+  // Sidebar branding
+  var displayName = APP.role === 'admin' ? 'Admin' : (APP.centerName || APP.centerCode);
+  document.getElementById('sidebar-title').textContent = 'ICO | ' + displayName;
+  document.getElementById('sidebar-subtitle').textContent = APP.role === 'admin' ? 'Administrator' : 'Center Portal';
+
+  // Dashboard title
+  document.getElementById('dashboard-title').innerHTML =
+    (APP.role === 'admin' ? 'Admin' : esc(APP.centerName || APP.centerCode)) +
+    ' <span>Leads Insights</span>';
+
+  // Topbar
+  document.getElementById('user-name-display').textContent = APP.username;
+  document.getElementById('user-role-display').textContent = APP.role.toUpperCase();
+  document.getElementById('user-avatar').textContent = APP.username.charAt(0).toUpperCase();
+
+  if (APP.role === 'admin') {
+    document.querySelectorAll('.admin-only').forEach(function(el) {
+      el.classList.remove('hidden');
+    });
+  }
+
+  loadFilterOptions();
+  showView('dashboard');
+  loadNotifications();
+  pollChatUnread();
+
+  APP.notifPollTimer = setInterval(loadNotifications, 60000);
+  APP.chatPollTimer  = setInterval(pollChatUnread, 30000);
+}
+
+// ── View Routing ───────────────────────────────────────────
+function showView(name) {
+var vc = document.getElementById('view-container');
+  if (name === 'chat') {
+    vc.style.padding  = '0';
+    vc.style.overflow = 'hidden';
+  } else {
+    vc.style.padding  = '';
+    vc.style.overflow = '';
+    if (typeof chatCleanup === 'function') chatCleanup(); // stop chat poll when leaving
+  }
+  APP.currentView = name;
+  document.querySelectorAll('.view').forEach(function(v) { v.classList.remove('active'); });
+  document.querySelectorAll('.nav-item').forEach(function(n) { n.classList.remove('active'); });
+
+  var viewEl = document.getElementById('view-' + name);
+  if (viewEl) viewEl.classList.add('active');
+  var navEl = document.querySelector('.nav-item[data-view="' + name + '"]');
+  if (navEl) navEl.classList.add('active');
+
+var titles = {
+    dashboard : 'LG Leads Dashboard',
+    pcp       : 'PCP Processing Leads',
+    insights  : 'Insights & Analytics',
+    chat      : 'Messages & Support',
+    incentives: 'Incentives',
+    users     : 'User Management',
+    activity  : 'Activity Log',
+  };
+  document.getElementById('topbar-title').textContent = titles[name] || name;
+  document.getElementById('topbar-search').style.display = name === 'dashboard' ? 'flex' : 'none';
+
+if (name === 'dashboard') {
+    loadDashboardStats();
+    if (!APP.leads.data || APP.leads.data.length === 0) loadLeads(1);
+    loadActiveIncentive();
+  }
+  if (name === 'pcp') pcpInit();
+  if (name === 'insights')   loadInsights();
+  if (name === 'users')      loadUsers();
+  if (name === 'activity')   loadActivityLog();
+  if (name === 'incentives') loadIncentives();
+  if (name === 'chat' && typeof chatInit === 'function') chatInit();
+}
+
+// ── Dashboard Stats ────────────────────────────────────────
+function loadDashboardStats() {
+  google.script.run
+    .withSuccessHandler(function(r) {
+      if (!r.success) return;
+      document.getElementById('stat-total').textContent    = r.total;
+      document.getElementById('stat-verified').textContent = r.verified;
+      document.getElementById('stat-signed').textContent   = r.orderSigned;
+      document.getElementById('stat-approved').textContent = r.approved;
+    })
+    .withFailureHandler(function(){})
+    .getDashboardStats(APP.token);
+}
+
+// ── Incentive Banner ───────────────────────────────────────
+function loadActiveIncentive() {
+  google.script.run
+    .withSuccessHandler(function(r) {
+      var container = document.getElementById('incentive-banner-container');
+      if (!r.success || !r.incentive) { container.innerHTML = ''; return; }
+      var inc = r.incentive;
+      container.innerHTML =
+        '<div class="incentive-banner">' +
+          '<div class="incentive-trophy">🏆</div>' +
+          '<div class="incentive-content">' +
+            '<div class="incentive-label">🔥 Active Challenge — Win Now</div>' +
+            '<div class="incentive-prize">' + esc(inc.prize) + '</div>' +
+            '<div class="incentive-target"><i class="fa-solid fa-bullseye"></i> ' + esc(inc.weeklyTarget) + '</div>' +
+            (inc.rules ? '<div class="incentive-rules">' + esc(inc.rules) + '</div>' : '') +
+            (inc.whoIncluded ? '<div class="incentive-who"><i class="fa-solid fa-users"></i> ' + esc(inc.whoIncluded) + '</div>' : '') +
+          '</div>' +
+          '<button class="incentive-close" onclick="this.parentElement.remove()" title="Dismiss">✕</button>' +
+        '</div>';
+    })
+    .withFailureHandler(function(){})
+    .getActiveIncentive(APP.token);
+}
+
+// ── Search ─────────────────────────────────────────────────
+function onSearchInput(val) {
+  clearTimeout(APP.searchDebounce);
+  APP.searchDebounce = setTimeout(function() {
+    APP.leads.search = val.trim();
+    loadLeads(1);
+  }, 400);
+}
+
+// ── Filters ────────────────────────────────────────────────
+function loadFilterOptions() {
+  google.script.run
+    .withSuccessHandler(function(r) {
+      if (!r.success) return;
+      APP.filterOptions = r;
+      populateSelect('filter-lead-status',   r.leadStatuses,       'All Lead Statuses');
+      populateSelect('filter-chaser-status', r.chaserStatuses,     'All Chaser Statuses');
+      populateSelect('filter-processing',    r.processingStatuses, 'All Processing');
+      if (APP.role === 'admin') {
+        populateSelect('filter-center', r.centerCodes, 'All Centers');
+      }
+    })
+    .withFailureHandler(function(){})
+    .getFilterOptions(APP.token);
+}
+
+function populateSelect(id, options, placeholder) {
+  var sel = document.getElementById(id);
+  if (!sel) return;
+  var current = sel.value;
+  sel.innerHTML = '<option value="">' + placeholder + '</option>';
+  (options || []).forEach(function(opt) {
+    var o = document.createElement('option');
+    o.value = opt; o.textContent = opt;
+    if (opt === current) o.selected = true;
+    sel.appendChild(o);
+  });
+}
+
+function applyFilters() {
+  APP.leads.filters = {
+    leadStatus      : document.getElementById('filter-lead-status').value,
+    chaserStatus    : document.getElementById('filter-chaser-status').value,
+    processingStatus: document.getElementById('filter-processing').value,
+    centerCode      : APP.role === 'admin' ? document.getElementById('filter-center').value : '',
+    dateFrom        : document.getElementById('filter-date-from').value,
+    dateTo          : document.getElementById('filter-date-to').value,
+  };
+  loadLeads(1);
+}
+
+function clearFilters() {
+  ['filter-lead-status','filter-chaser-status','filter-processing'].forEach(function(id){
+    var el = document.getElementById(id); if (el) el.value = '';
+  });
+  if (APP.role === 'admin') {
+    var fc = document.getElementById('filter-center'); if (fc) fc.value = '';
+  }
+  document.getElementById('filter-date-from').value = '';
+  document.getElementById('filter-date-to').value   = '';
+  document.getElementById('global-search').value    = '';
+  APP.leads.search  = '';
+  APP.leads.filters = {};
+  loadLeads(1);
+}
+
+// ── Refresh All ────────────────────────────────────────────
+function refreshAll() {
+  loadDashboardStats();
+  loadLeads(APP.leads.page);
+  loadActiveIncentive();
+}
+
+// ── Leads Table ────────────────────────────────────────────
+function loadLeads(page) {
+  if (APP.leads.loading) return;
+  APP.leads.loading = true;
+  APP.leads.page    = page;
+
+  var tbody = document.getElementById('leads-tbody');
+  tbody.innerHTML = '<tr><td colspan="8"><div class="loading-overlay"><div class="spinner"></div></div></td></tr>';
+
+  google.script.run
+    .withSuccessHandler(function(r) {
+      APP.leads.loading = false;
+      if (!r.success) { toast(r.error || 'Failed to load leads.', 'error'); return; }
+      APP.leads.data       = r.leads;
+      APP.leads.total      = r.total;
+      APP.leads.totalPages = r.totalPages;
+      renderLeadsTable(r.leads);
+      renderPagination(r.page, r.totalPages, r.total, r.leads.length);
+    })
+    .withFailureHandler(function() {
+      APP.leads.loading = false;
+      toast('Connection error loading leads.', 'error');
+      tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><i class="fa-solid fa-triangle-exclamation"></i><p>Failed to load leads</p></div></td></tr>';
+    })
+    .getLeads(APP.token, { page: page, search: APP.leads.search, filters: APP.leads.filters });
+}
+
+function renderLeadsTable(leads) {
+  var tbody   = document.getElementById('leads-tbody');
+  var isAdmin = APP.role === 'admin';
+  var count   = document.getElementById('table-count');
+
+  if (!leads || leads.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><i class="fa-solid fa-inbox"></i><p>No leads found matching your criteria</p></div></td></tr>';
+    count.textContent = '';
+    return;
+  }
+
+  count.textContent = leads.length + ' record' + (leads.length !== 1 ? 's' : '') + ' on this page';
+
+  var rows = leads.map(function(l) {
+    var processingTooltip = l.closingNotes || l.chaserNote || '';
+    return '<tr onclick="openLead(\'' + esc(l.leadId) + '\')">' +
+      '<td>' + esc(l.date) + '</td>' +
+      '<td class="name-cell">' + esc(l.fullName || '—') + '</td>' +
+      '<td class="phone-cell">' + esc(l.phone || '—') + '</td>' +
+      '<td>' + leadStatusBadge(l.leadStatus) + '</td>' +
+      '<td>' + chaserStatusBadge(l.chaserStatus) + '</td>' +
+      '<td>' + processingStatusBadge(l.processingStatusCenters, processingTooltip) + '</td>' +
+      (isAdmin ? '<td class="mono" style="font-size:12px;">' + esc(l.centerCode || '—') + '</td>' : '') +
+      '<td>' + (l.leadType ? '<span class="badge badge-info">' + esc(l.leadType) + '</span>' : '—') + '</td>' +
+      '</tr>';
+  });
+
+  tbody.innerHTML = rows.join('');
+}
+
+// ── Pagination ─────────────────────────────────────────────
+function renderPagination(page, totalPages, total, pageLen) {
+  var info  = document.getElementById('pagination-info');
+  var btns  = document.getElementById('pagination-btns');
+  var start = (page - 1) * 50 + 1;
+  var end   = Math.min(page * 50, total);
+  info.textContent = 'Showing ' + start + '–' + end + ' of ' + total + ' leads';
+
+  var html = '';
+  html += '<button class="page-btn" ' + (page <= 1 ? 'disabled' : '') +
+          ' onclick="loadLeads(' + (page - 1) + ')"><i class="fa-solid fa-chevron-left"></i></button>';
+
+  var range = pageRange(page, totalPages);
+  range.forEach(function(p) {
+    if (p === '…') {
+      html += '<button class="page-btn" disabled>…</button>';
+    } else {
+      html += '<button class="page-btn' + (p === page ? ' active' : '') +
+              '" onclick="loadLeads(' + p + ')">' + p + '</button>';
+    }
+  });
+
+  html += '<button class="page-btn" ' + (page >= totalPages ? 'disabled' : '') +
+          ' onclick="loadLeads(' + (page + 1) + ')"><i class="fa-solid fa-chevron-right"></i></button>';
+  btns.innerHTML = html;
+}
+
+function pageRange(page, total) {
+  if (total <= 7) {
+    var arr = [];
+    for (var i = 1; i <= total; i++) arr.push(i);
+    return arr;
+  }
+  var result = [1];
+  if (page > 3) result.push('…');
+  for (var i = Math.max(2, page - 1); i <= Math.min(total - 1, page + 1); i++) result.push(i);
+  if (page < total - 2) result.push('…');
+  result.push(total);
+  return result;
+}
+
+// ── Lead Modal ─────────────────────────────────────────────
+function openLead(leadId) {
+  APP.currentLeadId = leadId;
+  var modal = document.getElementById('lead-modal');
+  modal.classList.remove('hidden');
+  document.getElementById('modal-loading').style.display = 'flex';
+  document.querySelectorAll('.modal-tab-pane').forEach(function(p){
+    p.classList.remove('active'); p.classList.add('hidden');
+  });
+  document.getElementById('modal-lead-name').textContent = 'Loading…';
+  document.getElementById('modal-lead-id').textContent   = leadId;
+  document.getElementById('modal-badges').innerHTML      = '';
+
+  google.script.run
+    .withSuccessHandler(function(r) {
+      document.getElementById('modal-loading').style.display = 'none';
+      if (!r.success) { toast(r.error || 'Failed to load lead.', 'error'); closeLead(); return; }
+      fillLeadModal(r.lead, r.notes);
+    })
+    .withFailureHandler(function() {
+      document.getElementById('modal-loading').style.display = 'none';
+      toast('Connection error loading lead details.', 'error');
+      closeLead();
+    })
+    .getLeadDetails(APP.token, leadId);
+}
+
+function fillLeadModal(lead, notes) {
+  document.getElementById('modal-lead-id').textContent   = lead.leadId;
+  document.getElementById('modal-lead-name').textContent = lead.fullName || '—';
+
+  var badgeHtml = [
+    leadStatusBadge(lead.leadStatus),
+    chaserStatusBadge(lead.chaserStatus),
+    processingStatusBadge(lead.processingStatusCenters),
+  ].filter(Boolean).join('');
+  document.getElementById('modal-badges').innerHTML = badgeHtml;
+
+  // Overview
+  setDet('d-date',          lead.date);
+  setDet('d-center-code',   lead.centerCode);
+  setDet('d-center-name',   lead.centerName);
+  setDet('d-closer-name',   lead.closerName);
+  setDetHtml('d-lead-status',   leadStatusBadge(lead.leadStatus) || '—');
+  setDet('d-lead-type',     lead.leadType);
+  setDet('d-products',      lead.requestedProducts);
+  setDet('d-sns',           lead.snsResult);
+  setDet('d-chaser-name',   lead.chaserName);
+  setDetHtml('d-chaser-status', chaserStatusBadge(lead.chaserStatus) || '—');
+  setDetHtml('d-proc-centers',  processingStatusBadge(lead.clientfeedback) || '—');
+  setDet('d-proc-ico',      lead.processingStatusICO);
+  setDet('d-closing-notes', lead.closingNotes);
+  setDet('d-chaser-note',   lead.chaserNote);
+
+  // Patient Info
+  setDet('d-first-name',  lead.firstName);
+  setDet('d-last-name',   lead.lastName);
+  setDet('d-dob',         lead.dob);
+  setDet('d-gender',      lead.gender);
+  setDet('d-med-id',      lead.medId);
+  setDet('d-height',      lead.height);
+  setDet('d-weight',      lead.weight);
+  setDet('d-shoe-size',   lead.shoeSize);
+  setDet('d-waist-size',  lead.waistSize);
+  setDet('d-phone',       lead.phone);
+  setDet('d-address',     lead.address);
+  setDet('d-city',        lead.city);
+  setDet('d-state',       lead.state);
+  setDet('d-zip',         lead.zip);
+
+  // Doctor Info
+  setDet('d-doc-name',    lead.doctorName);
+  setDet('d-doc-phone',   lead.doctorPhone);
+  setDet('d-doc-fax',     lead.doctorFax);
+  setDet('d-doc-npi',     lead.doctorNpi);
+
+  renderNotes(notes);
+  switchTab('overview');
+
+  var nBadge = document.getElementById('notes-count-badge');
+  if (notes && notes.length > 0) {
+    nBadge.textContent = notes.length;
+    nBadge.style.display = 'inline';
+  } else {
+    nBadge.style.display = 'none';
+  }
+}
+
+function setDet(id, val) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  if (!val || String(val).trim() === '') {
+    el.innerHTML = '<span style="color:var(--text-muted);font-style:italic;">—</span>';
+  } else {
+    el.textContent = String(val);
+  }
+}
+
+function setDetHtml(id, html) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  el.innerHTML = html || '<span style="color:var(--text-muted);font-style:italic;">—</span>';
+}
+
+function switchTab(tabName) {
+  document.querySelectorAll('.modal-tab').forEach(function(t) {
+    t.classList.toggle('active', t.getAttribute('data-tab') === tabName);
+  });
+  document.querySelectorAll('.modal-tab-pane').forEach(function(p) {
+    p.classList.remove('active');
+    p.classList.add('hidden');
+  });
+  var pane = document.getElementById('tab-' + tabName);
+  if (pane) {
+    pane.classList.remove('hidden');
+    pane.classList.add('active');
+  }
+  if (tabName === 'audit' && APP.currentLeadId && APP.role === 'admin') {
+    loadAuditLog(APP.currentLeadId);
+  }
+}
+
+function closeLead() {
+  document.getElementById('lead-modal').classList.add('hidden');
+  APP.currentLeadId = null;
+}
+
+function onModalOverlayClick(e) {
+  if (e.target === document.getElementById('lead-modal')) closeLead();
+}
+
+// ── Notes ──────────────────────────────────────────────────
+function renderNotes(notes) {
+  var container = document.getElementById('notes-list');
+  if (!notes || notes.length === 0) {
+    container.innerHTML = '<div class="empty-state"><i class="fa-regular fa-note-sticky"></i><p>No notes yet. Be the first to add one.</p></div>';
+    return;
+  }
+  var html = notes.map(function(n) {
+    return '<div class="note-item">' +
+      '<div class="note-meta">' +
+        '<span class="note-author"><i class="fa-solid fa-user" style="margin-right:4px;"></i>' + esc(n.createdBy) + '</span>' +
+        '<span class="note-date">' + fmtTimestamp(n.timestamp) + '</span>' +
+      '</div>' +
+      '<div class="note-content">' + esc(n.content) + '</div>' +
+    '</div>';
+  }).join('');
+  container.innerHTML = html;
+}
+
+function submitNote() {
+  var content = document.getElementById('note-input').value.trim();
+  if (!content) { toast('Note cannot be empty.', 'warning'); return; }
+  if (!APP.currentLeadId) return;
+
+  var btn = document.getElementById('btn-add-note');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+  google.script.run
+    .withSuccessHandler(function(r) {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Add Note';
+      if (r.success) {
+        document.getElementById('note-input').value = '';
+        toast('Note added.', 'success');
+        google.script.run
+          .withSuccessHandler(function(r2) {
+            if (r2.success) {
+              renderNotes(r2.notes);
+              var nBadge = document.getElementById('notes-count-badge');
+              if (r2.notes && r2.notes.length > 0) {
+                nBadge.textContent = r2.notes.length;
+                nBadge.style.display = 'inline';
+              }
+            }
+          })
+          .withFailureHandler(function(){})
+          .getLeadDetails(APP.token, APP.currentLeadId);
+      } else {
+        toast(r.error || 'Failed to add note.', 'error');
+      }
+    })
+    .withFailureHandler(function() {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Add Note';
+      toast('Connection error.', 'error');
+    })
+    .addNote(APP.token, APP.currentLeadId, content);
+}
+
+// ── Audit Log ──────────────────────────────────────────────
+function loadAuditLog(leadId) {
+  var container = document.getElementById('audit-list');
+  container.innerHTML = '<div class="loading-overlay"><div class="spinner"></div></div>';
+  google.script.run
+    .withSuccessHandler(function(r) {
+      if (!r.success || !r.logs || r.logs.length === 0) {
+        container.innerHTML = '<div class="empty-state"><i class="fa-solid fa-list-check"></i><p>No audit entries for this lead.</p></div>';
+        return;
+      }
+      var html = '<table class="data-table"><thead><tr><th>Timestamp</th><th>Field</th><th>From</th><th>To</th><th>By</th></tr></thead><tbody>';
+      r.logs.forEach(function(l) {
+        html += '<tr>' +
+          '<td class="mono">' + fmtTimestamp(l.timestamp) + '</td>' +
+          '<td><strong>' + esc(l.fieldName) + '</strong></td>' +
+          '<td style="color:var(--danger);">' + esc(l.oldValue || '—') + '</td>' +
+          '<td style="color:var(--success);">' + esc(l.newValue || '—') + '</td>' +
+          '<td>' + esc(l.changedBy) + '</td></tr>';
+      });
+      html += '</tbody></table>';
+      container.innerHTML = html;
+    })
+    .withFailureHandler(function() {
+      container.innerHTML = '<div class="empty-state"><i class="fa-solid fa-triangle-exclamation"></i><p>Failed to load audit log.</p></div>';
+    })
+    .getAuditLog(APP.token, leadId);
+}
+
+// ── Notifications ──────────────────────────────────────────
+function toggleNotifPanel() {
+  document.getElementById('notif-panel').classList.toggle('open');
+}
+
+function loadNotifications() {
+  google.script.run
+    .withSuccessHandler(function(r) {
+      if (!r.success) return;
+      renderNotifications(r.notifications, r.unreadCount);
+    })
+    .withFailureHandler(function(){})
+    .getNotifications(APP.token);
+}
+
+function renderNotifications(notifs, unreadCount) {
+  var dot  = document.getElementById('notif-dot');
+  var list = document.getElementById('notif-list');
+
+  dot.classList.toggle('show', unreadCount > 0);
+
+  if (!notifs || notifs.length === 0) {
+    list.innerHTML = '<div class="empty-state"><i class="fa-solid fa-bell-slash"></i><p>No notifications</p></div>';
+    return;
+  }
+
+  var html = notifs.map(function(n) {
+    var unread  = n.status === 'Unread';
+    var changes = parseNotifChanges(n.messageRaw);
+
+    var changesHtml = changes.length > 0
+      ? '<div class="notif-changes">' + changes.map(function(c) {
+          return '<div class="notif-change-row">' +
+            '<span class="notif-change-field">' + esc(c.field) + '</span>' +
+            '<span class="notif-change-arrow">→</span>' +
+            '<span class="notif-change-to">' + esc(c.to || '(cleared)') + '</span>' +
+          '</div>';
+        }).join('') + '</div>'
+      : '<div style="font-size:12px;color:var(--text-muted);">Update detected</div>';
+
+    return '<div class="notif-item ' + (unread ? 'unread' : '') + '" onclick="onNotifClick(\'' + esc(n.id) + '\',\'' + esc(n.leadId) + '\')">' +
+      '<div class="notif-lead-id"><i class="fa-solid fa-tag" style="margin-right:4px;"></i>' + esc(n.leadId) + '</div>' +
+      changesHtml +
+      '<div class="notif-time"><i class="fa-regular fa-clock" style="margin-right:3px;"></i>' + fmtTimestamp(n.timestamp) + '</div>' +
+    '</div>';
+  }).join('');
+
+  list.innerHTML = html;
+}
+
+function parseNotifChanges(rawMsg) {
+  if (!rawMsg) return [];
+  try {
+    var parsed = typeof rawMsg === 'string' ? JSON.parse(rawMsg) : rawMsg;
+    if (parsed && Array.isArray(parsed.changes)) {
+      return parsed.changes.filter(function(c) { return c.to && c.to.trim(); });
+    }
+  } catch (e) {}
+  // Fallback: return raw message as a single item
+  return [{ field: 'Update', to: String(rawMsg).substring(0, 80) }];
+}
+
+function onNotifClick(notifId, leadId) {
+  google.script.run
+    .withSuccessHandler(function(r) { if (r.success) loadNotifications(); })
+    .withFailureHandler(function(){})
+    .markNotificationRead(APP.token, notifId);
+
+  if (leadId) {
+    toggleNotifPanel();
+    openLead(leadId);
+  }
+}
+
+function markAllRead() {
+  google.script.run
+    .withSuccessHandler(function(r) {
+      if (r.success) { loadNotifications(); toast('All notifications marked as read.', 'success'); }
+    })
+    .withFailureHandler(function(){})
+    .markAllNotificationsRead(APP.token);
+}
+
+// ══════════════════════════════════════════════════════════
+// CHAT
+// ══════════════════════════════════════════════════════════
+
+function initChat() {
+  if (APP.role === 'admin') {
+    loadChatCenters();
+  } else {
+    APP.chatCenterCode = APP.centerCode;
+    document.getElementById('chat-thread-label').textContent = 'ICO Support Team';
+    loadChatMessages();
+    google.script.run
+      .withSuccessHandler(function(){})
+      .withFailureHandler(function(){})
+      .markChatRead(APP.token, null);
+  }
+}
+
+function loadChatCenters() {
+  var list = document.getElementById('chat-center-list');
+  list.innerHTML = '<div class="loading-overlay"><div class="spinner"></div></div>';
+  google.script.run
+    .withSuccessHandler(function(r) {
+      if (!r.success || !r.centers || r.centers.length === 0) {
+        list.innerHTML = '<div style="padding:16px;font-size:12px;color:var(--text-muted);text-align:center;">No conversations yet</div>';
+        return;
+      }
+      list.innerHTML = r.centers.map(function(c) {
+        return '<div class="chat-center-item' + (c.unread > 0 ? ' unread' : '') +
+               (APP.chatCenterCode === c.centerCode ? ' active' : '') + '" onclick="selectChatCenter(\'' + esc(c.centerCode) + '\')">' +
+          '<div class="user-avatar" style="width:28px;height:28px;font-size:11px;">' + esc(c.centerCode.charAt(0)) + '</div>' +
+          '<span class="chat-center-code">' + esc(c.centerCode) + '</span>' +
+          (c.unread > 0 ? '<span class="chat-center-badge">' + c.unread + '</span>' : '') +
+        '</div>';
+      }).join('');
+    })
+    .withFailureHandler(function(){})
+    .getChatCenters(APP.token);
+}
+
+function selectChatCenter(cc) {
+  APP.chatCenterCode = cc;
+  document.getElementById('chat-thread-label').textContent = cc;
+  document.querySelectorAll('.chat-center-item').forEach(function(el) {
+    el.classList.remove('active');
+    if (el.textContent.trim().indexOf(cc) !== -1) el.classList.add('active');
+  });
+  loadChatMessages();
+  google.script.run.withSuccessHandler(function(){}).withFailureHandler(function(){})
+    .markChatRead(APP.token, cc);
+}
+
+function loadChatMessages() {
+  var cc = APP.role === 'admin' ? APP.chatCenterCode : APP.centerCode;
+  if (!cc && APP.role === 'admin') {
+    document.getElementById('chat-messages').innerHTML =
+      '<div class="chat-empty"><i class="fa-solid fa-comments"></i><p>Select a center to start chatting</p></div>';
+    return;
+  }
+
+  google.script.run
+    .withSuccessHandler(function(r) {
+      if (!r.success) return;
+      renderChatMessages(r.messages);
+    })
+    .withFailureHandler(function(){})
+    .getChatMessages(APP.token, cc, 100);
+}
+
+function renderChatMessages(messages) {
+  var container = document.getElementById('chat-messages');
+  if (!messages || messages.length === 0) {
+    container.innerHTML = '<div class="chat-empty"><i class="fa-solid fa-comments"></i><p>No messages yet.<br>Start the conversation!</p></div>';
+    return;
+  }
+
+  var html = messages.map(function(m) {
+    var isMe = (APP.role === 'admin' && m.role === 'admin') ||
+               (APP.role !== 'admin' && m.role !== 'admin');
+    return '<div class="chat-msg-wrap ' + (isMe ? 'mine' : 'theirs') + '">' +
+      (!isMe ? '<div class="chat-sender">' + esc(m.sender) + '</div>' : '') +
+      '<div class="chat-bubble">' + esc(m.message) + '</div>' +
+      '<div class="chat-meta">' + fmtTimestamp(m.timestamp) + '</div>' +
+    '</div>';
+  }).join('');
+
+  container.innerHTML = html;
+  container.scrollTop = container.scrollHeight;
+}
+
+function sendChatMessage() {
+  var input   = document.getElementById('chat-input');
+  var message = input.value.trim();
+  if (!message) return;
+
+  var cc = APP.role === 'admin' ? APP.chatCenterCode : null;
+  if (APP.role === 'admin' && !cc) { toast('Select a center first.', 'warning'); return; }
+
+  var btn = document.getElementById('chat-send-btn');
+  btn.disabled = true;
+  input.value  = '';
+
+  google.script.run
+    .withSuccessHandler(function(r) {
+      btn.disabled = false;
+      if (r.success) {
+        loadChatMessages();
+        if (APP.role === 'admin') loadChatCenters();
+      } else {
+        toast(r.error || 'Failed to send.', 'error');
+      }
+    })
+    .withFailureHandler(function() {
+      btn.disabled = false;
+      toast('Connection error.', 'error');
+    })
+    .sendChatMessage(APP.token, message, cc);
+}
+
+function pollChatUnread() {
+  google.script.run
+    .withSuccessHandler(function(r) {
+      if (!r.success) return;
+      var badge = document.getElementById('chat-nav-badge');
+      if (r.unread > 0) {
+        badge.textContent = r.unread;
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
+    })
+    .withFailureHandler(function(){})
+    .getChatUnread(APP.token);
+}
+
+// ══════════════════════════════════════════════════════════
+// INSIGHTS — Enhanced Analytics (LG Leads + PCP Leads)
+// ══════════════════════════════════════════════════════════
+
+function loadInsights() {
+  var dateFrom = document.getElementById('ins-date-from').value;
+  var dateTo   = document.getElementById('ins-date-to').value;
+
+  document.getElementById('insights-loading').style.display = 'flex';
+  document.getElementById('charts-container').classList.add('hidden');
+
+  google.script.run
+    .withSuccessHandler(function(r) {
+      document.getElementById('insights-loading').style.display = 'none';
+      if (!r.success) { toast(r.error || 'Failed to load insights.', 'error'); return; }
+      document.getElementById('charts-container').classList.remove('hidden');
+
+      // ── LG Leads ──
+      renderInsightsAlerts(r.production, r.totalLeads);
+      renderQualityCards(r.production, r.totalLeads);
+      renderFunnel(r.production, r.totalLeads);
+      renderCharts(r);
+      renderConversionDetail(r.production);
+      renderWeeklyTracking('weekly-lg-container', r.weeklyLG, 'LG Leads Weekly Production');
+
+      // ── PCP Leads ──
+      renderPCPSection(r.pcp, r.weeklyPCP);
+    })
+    .withFailureHandler(function() {
+      document.getElementById('insights-loading').style.display = 'none';
+      toast('Failed to load insights data.', 'error');
+    })
+    .getInsightsData(APP.token, dateFrom || null, dateTo || null);
+}
+
+// ══════════════════════════════════════════════════════════
+// LG LEADS — Alerts
+// ══════════════════════════════════════════════════════════
+function renderInsightsAlerts(p, total) {
+  var container = document.getElementById('insights-alerts');
+  if (!p) { container.innerHTML = ''; return; }
+  var alerts = [];
+
+  // 1. Production Rate alert
+  var prodPct = total > 0 ? Math.round((p.verified / total) * 100) : 0;
+  if (prodPct >= 60) {
+    alerts.push({ type: 'success', icon: '✅', msg: '<strong>Strong Production Rate (' + prodPct + '%)</strong> — Over 60% of submitted transfers are verified. Excellent lead quality.' });
+  } else if (prodPct >= 40) {
+    alerts.push({ type: 'warning', icon: '⚠️', msg: '<strong>Average Production Rate (' + prodPct + '%)</strong> — Between 40–60% verified. Room to improve submission quality.' });
+  } else {
+    alerts.push({ type: 'danger', icon: '🚨', msg: '<strong>Low Production Rate (' + prodPct + '%)</strong> — Under 40% verified. Review submission quality urgently.' });
+  }
+
+  // 2. RTS Rate alert (denominator = returned DOs)
+  if (p.returnedDOs > 0) {
+    var rtsPct = Math.round((p.rtsFromReturned / p.returnedDOs) * 100);
+    if (rtsPct <= 7) {
+      alerts.push({ type: 'success', icon: '✅', msg: '<strong>Excellent RTS Rate (' + rtsPct + '%)</strong> — Only ' + p.rtsFromReturned + ' of ' + p.returnedDOs + ' returned orders shipped back. Very healthy.' });
+    } else if (rtsPct <= 15) {
+      alerts.push({ type: 'warning', icon: '⚠️', msg: '<strong>Watch RTS Rate (' + rtsPct + '%)</strong> — ' + p.rtsFromReturned + ' of ' + p.returnedDOs + ' returned DOs became RTS. Keep below 15%.' });
+    } else {
+      alerts.push({ type: 'danger', icon: '🚨', msg: '<strong>Critical RTS Rate (' + rtsPct + '%)</strong> — ' + p.rtsFromReturned + ' of ' + p.returnedDOs + ' returned DOs shipped and returned. Investigate immediately.' });
+    }
+  }
+
+  // 3. 45-Day Retention alert
+  if (p.verifiedWithin45 > 0) {
+    var retPct = Math.round((p.notReturnedWithin45 / p.verifiedWithin45) * 100);
+    if (retPct >= 75) {
+      alerts.push({ type: 'success', icon: '🏆', msg: '<strong>Strong 45-Day Retention (' + retPct + '%)</strong> — ' + p.notReturnedWithin45 + ' of ' + p.verifiedWithin45 + ' recent verified leads still active in pipeline.' });
+    } else if (retPct >= 50) {
+      alerts.push({ type: 'info', icon: '📊', msg: '<strong>Moderate 45-Day Retention (' + retPct + '%)</strong> — ' + p.notReturnedWithin45 + ' of ' + p.verifiedWithin45 + ' recent leads still active. Monitor closely.' });
+    } else {
+      alerts.push({ type: 'warning', icon: '📉', msg: '<strong>Low 45-Day Retention (' + retPct + '%)</strong> — Many recent verified leads are being returned. Check follow-up and ICO quality.' });
+    }
+  }
+
+  // 4. Return Rate alert
+  if (p.verified > 0) {
+    var returnPct = Math.round((p.returnedDOs / p.verified) * 100);
+    if (returnPct >= 60) {
+      alerts.push({ type: 'success', icon: '📦', msg: '<strong>Good Return Rate (' + returnPct + '%)</strong> — ' + p.returnedDOs + ' of your verified leads made it back as signed orders.' });
+    } else if (returnPct >= 30) {
+      alerts.push({ type: 'info', icon: '📦', msg: '<strong>Moderate Return Rate (' + returnPct + '%)</strong> — ' + p.returnedDOs + ' of ' + p.verified + ' verified leads returned as DOs.' });
+    } else {
+      alerts.push({ type: 'warning', icon: '📦', msg: '<strong>Low Return Rate (' + returnPct + '%)</strong> — Only ' + p.returnedDOs + ' of ' + p.verified + ' verified leads came back as signed orders.' });
+    }
+  }
+
+  container.innerHTML = alerts.map(function(a) {
+    return '<div class="insight-alert ' + a.type + '"><div class="insight-alert-icon">' + a.icon + '</div><div class="insight-alert-text">' + a.msg + '</div></div>';
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════════
+// LG LEADS — Quality Cards (5 metrics)
+// ══════════════════════════════════════════════════════════
+function renderQualityCards(p, total) {
+  var container = document.getElementById('quality-cards');
+  if (!p || !total) { container.innerHTML = ''; return; }
+
+  // 1. Production Rate: verified / total transfers (all LG leads)
+  var prodPct   = total > 0 ? Math.round((p.verified / total) * 100) : 0;
+  var prodClass = prodPct >= 60 ? 'great' : prodPct >= 40 ? 'ok' : 'poor';
+
+  // 2. 45-Day Retention: not-returned verified leads submitted ≤45 days ago / all verified ≤45 days old
+  var conv45Pct   = p.verifiedWithin45 > 0 ? Math.round((p.notReturnedWithin45 / p.verifiedWithin45) * 100) : null;
+  var convClass   = conv45Pct === null ? 'ok' : conv45Pct >= 75 ? 'great' : conv45Pct >= 50 ? 'ok' : 'poor';
+
+  // 3. Approval Rate: approved from returned DOs
+  var approvalPct   = p.returnedDOs > 0 ? Math.round((p.approvedFromReturned / p.returnedDOs) * 100) : 0;
+  var approvalClass = approvalPct >= 70 ? 'great' : approvalPct >= 40 ? 'ok' : 'poor';
+
+  // 4. RTS Rate: RTS from returned DOs
+  var rtsPct   = p.returnedDOs > 0 ? Math.round((p.rtsFromReturned / p.returnedDOs) * 100) : 0;
+  var rtsClass = rtsPct <= 7 ? 'great' : rtsPct <= 15 ? 'ok' : 'poor';
+
+  // 5. Return Rate: returned DOs from all verified leads
+  var returnPct   = p.verified > 0 ? Math.round((p.returnedDOs / p.verified) * 100) : 0;
+  var returnClass = returnPct >= 60 ? 'great' : returnPct >= 30 ? 'ok' : 'poor';
+
+  container.innerHTML =
+    qCard(prodPct + '%',                                          prodClass,    'Production Rate',    'Verified transfers / total LG submissions') +
+    qCard(conv45Pct !== null ? conv45Pct + '%' : 'N/A',          convClass,    '45-Day Retention',   'Not-returned verified leads submitted ≤45 days ago') +
+    qCard(approvalPct + '%',                                      approvalClass,'Approval Rate',      'Approved orders from total returned DOs') +
+    qCard(rtsPct + '%',                                           rtsClass,     'RTS Rate',           'Returned shipments from total returned DOs') +
+    qCard(returnPct + '%' + ' <small style="font-size:9px;opacity:.7;">(' + p.returnedDOs + '/' + p.verified + ')</small>', returnClass, 'DO Return Rate', 'Returned DOs from all verified leads');
+}
+
+function qCard(score, cls, label, desc) {
+  return '<div class="quality-card ' + cls + '">' +
+    '<div class="quality-score ' + cls + '">' + score + '</div>' +
+    '<div class="quality-label">' + label + '</div>' +
+    '<div class="quality-desc">' + desc + '</div>' +
+  '</div>';
+}
+
+// ══════════════════════════════════════════════════════════
+// WEEKLY PRODUCTION TRACKING (shared by LG & PCP)
+// weeklyData = [{label: 'Apr 14–20', count: 12}, ...]  (3 items, oldest→newest)
+// ══════════════════════════════════════════════════════════
+var WEEKLY_TARGET = 10;
+
+function renderWeeklyTracking(containerId, weeklyData, title) {
+  var container = document.getElementById(containerId);
+  if (!container) return;
+
+  if (!weeklyData || weeklyData.length === 0) {
+    container.innerHTML = '<div class="empty-state"><i class="fa-solid fa-calendar-week"></i><p>No weekly data available.</p></div>';
+    return;
+  }
+
+  var maxVal = Math.max(WEEKLY_TARGET * 1.5, Math.max.apply(null, weeklyData.map(function(w) { return w.count; })));
+
+  // Summary badge for the latest week
+  var latest    = weeklyData[weeklyData.length - 1];
+  var prevWeek  = weeklyData.length >= 2 ? weeklyData[weeklyData.length - 2] : null;
+  var weekTrend = prevWeek ? (latest.count - prevWeek.count) : 0;
+  var trendTxt  = weekTrend > 0 ? ('▲ ' + weekTrend + ' vs last week') : weekTrend < 0 ? ('▼ ' + Math.abs(weekTrend) + ' vs last week') : '— Same as last week';
+  var trendClr  = weekTrend > 0 ? 'var(--success)' : weekTrend < 0 ? 'var(--danger)' : 'var(--text-muted)';
+
+  var barsHtml = weeklyData.map(function(w, i) {
+    var isLatest  = i === weeklyData.length - 1;
+    var cls       = w.count >= WEEKLY_TARGET ? 'great' : w.count >= Math.ceil(WEEKLY_TARGET * 0.7) ? 'ok' : 'poor';
+    var color     = cls === 'great' ? '#059669' : cls === 'ok' ? '#d97706' : '#dc2626';
+    var barH      = Math.max(Math.round((w.count / maxVal) * 100), 3);
+    var diff      = i > 0 ? (w.count - weeklyData[i - 1].count) : null;
+    var diffIcon  = diff === null ? '' : diff > 0 ? ('▲' + diff) : diff < 0 ? ('▼' + Math.abs(diff)) : '—';
+    var diffColor = diff === null ? '' : diff > 0 ? '#059669' : diff < 0 ? '#dc2626' : '#94a3b8';
+
+    return '<div style="display:flex;flex-direction:column;align-items:center;gap:5px;flex:1;min-width:0;">' +
+      // Count
+      '<div style="font-size:24px;font-weight:800;font-family:DM Mono,monospace;color:' + color + ';">' + w.count + '</div>' +
+      // Trend vs previous
+      '<div style="font-size:10px;font-weight:700;color:' + (diff !== null ? diffColor : 'transparent') + ';">' + (diffIcon || '&nbsp;') + '</div>' +
+      // Bar
+      '<div style="width:52px;height:90px;background:var(--bg-surface2);border-radius:8px 8px 0 0;display:flex;align-items:flex-end;overflow:hidden;position:relative;">' +
+        // Target line at WEEKLY_TARGET level
+        '<div style="position:absolute;bottom:' + Math.round((WEEKLY_TARGET / maxVal) * 100) + '%;left:0;right:0;height:2px;background:#2563eb44;z-index:1;"></div>' +
+        '<div style="width:100%;height:' + barH + '%;background:' + color + ';border-radius:8px 8px 0 0;transition:height .7s ease;position:relative;z-index:2;"></div>' +
+      '</div>' +
+      // Week label
+      '<div style="font-size:9px;color:var(--text-muted);text-align:center;line-height:1.3;">' +
+        w.label + (isLatest ? '<br><span style="color:#2563eb;font-weight:700;">Current</span>' : '') +
+      '</div>' +
+      // Status badge
+      '<div style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:999px;background:' + color + '22;color:' + color + ';">' +
+        (w.count >= WEEKLY_TARGET ? '✅ On Track' : '⚠️ Below') +
+      '</div>' +
+    '</div>';
+  }).join('');
+
+  container.innerHTML =
+    // Header
+    '<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:8px;">' +
+      '<div>' +
+        '<div style="font-size:13px;font-weight:700;color:var(--text);">' + title + '</div>' +
+        '<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Last 3 weeks · <strong style="color:#2563eb;">Target: ' + WEEKLY_TARGET + ' leads/week</strong></div>' +
+      '</div>' +
+      '<div style="font-size:11px;font-weight:700;color:' + trendClr + ';background:var(--bg-surface2);padding:4px 12px;border-radius:999px;">' + trendTxt + '</div>' +
+    '</div>' +
+    // Bars
+    '<div style="display:flex;gap:20px;align-items:flex-end;justify-content:center;padding:4px 0 8px;">' + barsHtml + '</div>' +
+    // Target legend
+    '<div style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:10px;color:var(--text-muted);">' +
+      '<div style="width:20px;height:2px;background:#2563eb88;"></div>' +
+      '<span>Blue dashed line = 10-lead minimum target</span>' +
+    '</div>';
+}
+
+// ══════════════════════════════════════════════════════════
+// PCP LEADS SECTION
+// ══════════════════════════════════════════════════════════
+function renderPCPSection(pcp, weeklyPCP) {
+  var container = document.getElementById('pcp-section');
+  if (!container) return;
+
+  if (!pcp || pcp.total === 0) {
+    container.innerHTML =
+      '<div class="empty-state" style="padding:30px;">' +
+        '<i class="fa-solid fa-file-medical"></i>' +
+        '<p>No PCP Leads data available for this period.</p>' +
+      '</div>';
+    return;
+  }
+
+  var approvedPct = Math.round((pcp.approved / pcp.total) * 100);
+  var deniedPct   = Math.round((pcp.denied   / pcp.total) * 100);
+  var rtsPct      = Math.round((pcp.rts      / pcp.total) * 100);
+  var pendingPct  = Math.max(0, 100 - approvedPct - deniedPct - rtsPct);
+
+  var approvedClass = approvedPct >= 50 ? 'great' : approvedPct >= 30 ? 'ok' : 'poor';
+  var deniedClass   = deniedPct  <= 20 ? 'great' : deniedPct  <= 40 ? 'ok' : 'poor';
+  var rtsClass      = rtsPct     <= 7  ? 'great' : rtsPct     <= 15 ? 'ok' : 'poor';
+
+  // PCP Alerts
+  var alertsHtml = '';
+  var pcpAlerts = [];
+  if (approvedPct >= 50) {
+    pcpAlerts.push({ type: 'success', icon: '✅', msg: '<strong>Strong PCP Approval Rate (' + approvedPct + '%)</strong> — Over half of submitted PCP orders are getting approved.' });
+  } else if (approvedPct >= 30) {
+    pcpAlerts.push({ type: 'info', icon: '📊', msg: '<strong>Moderate PCP Approval Rate (' + approvedPct + '%)</strong> — ' + pcp.approved + ' of ' + pcp.total + ' PCP orders approved.' });
+  } else {
+    pcpAlerts.push({ type: 'warning', icon: '⚠️', msg: '<strong>Low PCP Approval Rate (' + approvedPct + '%)</strong> — Only ' + pcp.approved + ' of ' + pcp.total + ' PCP orders approved. Review order quality.' });
+  }
+  if (rtsPct > 15) {
+    pcpAlerts.push({ type: 'danger', icon: '🚨', msg: '<strong>High PCP RTS (' + rtsPct + '%)</strong> — ' + pcp.rts + ' orders returned. Investigate product/patient fit.' });
+  }
+  alertsHtml = pcpAlerts.map(function(a) {
+    return '<div class="insight-alert ' + a.type + '" style="margin-bottom:8px;"><div class="insight-alert-icon">' + a.icon + '</div><div class="insight-alert-text">' + a.msg + '</div></div>';
+  }).join('');
+
+  container.innerHTML =
+    // PCP Header + Total
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:8px;">' +
+      '<div>' +
+        '<div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:4px;">PCP Leads — Total Orders Submitted</div>' +
+        '<div style="font-size:40px;font-weight:800;font-family:DM Mono,monospace;line-height:1;">' + pcp.total + '</div>' +
+      '</div>' +
+      // Mini donut-like summary bar
+      '<div style="display:flex;flex-direction:column;gap:4px;min-width:200px;">' +
+        pcpMiniBar('Approved', pcp.approved, pcp.total, '#059669') +
+        pcpMiniBar('Denied',   pcp.denied,   pcp.total, '#dc2626') +
+        pcpMiniBar('RTS',      pcp.rts,      pcp.total, '#ea580c') +
+        (pendingPct > 0 ? pcpMiniBar('Pending', pcp.total - pcp.approved - pcp.denied - pcp.rts, pcp.total, '#94a3b8') : '') +
+      '</div>' +
+    '</div>' +
+
+    // Alerts
+    (alertsHtml ? '<div style="margin-bottom:16px;">' + alertsHtml + '</div>' : '') +
+
+    // Metric Cards
+    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:24px;">' +
+      qCard(approvedPct + '%', approvedClass, 'Approved',   pcp.approved + ' of ' + pcp.total + ' PCP orders') +
+      qCard(deniedPct   + '%', deniedClass,   'Denied',     pcp.denied   + ' of ' + pcp.total + ' PCP orders') +
+      qCard(rtsPct      + '%', rtsClass,      'RTS Rate',   pcp.rts      + ' returned shipments') +
+      (pendingPct > 0 ? qCard(pendingPct + '%', 'ok', 'Pending', (pcp.total - pcp.approved - pcp.denied - pcp.rts) + ' awaiting outcome') : '') +
+    '</div>' +
+
+    // Weekly tracking
+    '<div id="weekly-pcp-container"></div>';
+
+  // Render PCP weekly after DOM is set
+  renderWeeklyTracking('weekly-pcp-container', weeklyPCP, 'PCP Leads Weekly Production');
+}
+
+function pcpMiniBar(label, count, total, color) {
+  var pct = total > 0 ? Math.round((count / total) * 100) : 0;
+  return '<div style="display:flex;align-items:center;gap:8px;">' +
+    '<div style="font-size:9px;color:var(--text-muted);width:52px;text-align:right;">' + label + '</div>' +
+    '<div style="flex:1;height:6px;background:var(--bg-surface2);border-radius:999px;overflow:hidden;">' +
+      '<div style="height:100%;width:' + pct + '%;background:' + color + ';border-radius:999px;transition:width .6s;"></div>' +
+    '</div>' +
+    '<div style="font-size:9px;font-weight:700;color:' + color + ';width:30px;">' + pct + '%</div>' +
+  '</div>';
+}
+
+// ══════════════════════════════════════════════════════════
+// FUNNEL (unchanged)
+// ══════════════════════════════════════════════════════════
+function renderFunnel(p, total) {
+  var container = document.getElementById('funnel-container');
+  if (!p || !total) { container.innerHTML = ''; return; }
+
+  var stages = [
+    { label: 'Total Submitted',   count: total,           pct: 100,                                                     cls: 'production', color: '#2563eb' },
+    { label: 'Verified Leads',    count: p.verified,      pct: total > 0 ? Math.round(p.verified/total*100) : 0,        cls: 'production', color: '#059669' },
+    { label: 'Returned DOs',      count: p.returnedDOs,   pct: p.verified > 0 ? Math.round(p.returnedDOs/p.verified*100) : 0, cls: 'signed', color: '#7c3aed', note: '% of verified' },
+    { label: 'High Potential',    count: p.highPotential, pct: total > 0 ? Math.round(p.highPotential/total*100) : 0,   cls: 'potential', color: '#d97706' },
+    { label: 'Orders Signed',     count: p.orderSigned,   pct: total > 0 ? Math.round(p.orderSigned/total*100) : 0,     cls: 'signed',    color: '#7c3aed' },
+    { label: 'Approved (Paid)',   count: p.approved,      pct: total > 0 ? Math.round(p.approved/total*100) : 0,        cls: 'approved',  color: '#059669' },
+  ];
+
+  container.innerHTML = stages.map(function(s) {
+    var barWidth = Math.max(s.pct, 2);
+    return '<div class="funnel-stage">' +
+      '<div class="funnel-label">' + s.label + (s.note ? ' <span style="font-size:9px;color:var(--text-muted);">(' + s.note + ')</span>' : '') + '</div>' +
+      '<div class="funnel-bar-wrap">' +
+        '<div class="funnel-bar ' + s.cls + '" style="width:' + barWidth + '%;background:linear-gradient(90deg,' + s.color + ',' + s.color + 'bb);">' +
+          (s.count > 0 ? s.count + ' leads' : '') +
+        '</div>' +
+      '</div>' +
+      '<div class="funnel-pct">' + s.pct + '%</div>' +
+    '</div>';
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════════
+// CONVERSION DETAIL (unchanged)
+// ══════════════════════════════════════════════════════════
+function renderConversionDetail(p) {
+  var container = document.getElementById('conversion-detail');
+  if (!p) { container.innerHTML = ''; return; }
+
+  if (p.leadsOlderThan45 === 0) {
+    container.innerHTML = '<div class="empty-state" style="padding:20px;"><i class="fa-solid fa-clock"></i><p>No leads older than 45 days yet. Check back soon.</p></div>';
+    return;
+  }
+
+  var pct      = p.orderConversionRate;
+  var cls      = pct >= 30 ? 'great' : pct >= 25 ? 'ok' : 'poor';
+  var color    = cls === 'great' ? 'var(--success)' : cls === 'ok' ? 'var(--warning)' : 'var(--danger)';
+  var barWidth = Math.min(pct, 100);
+
+  container.innerHTML =
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;margin-bottom:20px;">' +
+      '<div style="text-align:center;"><div style="font-size:32px;font-weight:800;font-family:DM Mono,monospace;color:' + color + ';">' + pct + '%</div><div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Conversion Rate</div></div>' +
+      '<div style="text-align:center;"><div style="font-size:32px;font-weight:800;font-family:DM Mono,monospace;">' + p.orderSignedOlderThan45 + '</div><div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Orders Signed</div></div>' +
+      '<div style="text-align:center;"><div style="font-size:32px;font-weight:800;font-family:DM Mono,monospace;">' + p.leadsOlderThan45 + '</div><div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Eligible Leads (45+ days)</div></div>' +
+    '</div>' +
+    '<div style="background:var(--bg-surface2);border-radius:999px;height:12px;overflow:hidden;margin-bottom:10px;">' +
+      '<div style="height:100%;border-radius:999px;background:' + color + ';width:' + barWidth + '%;transition:width .8s;"></div>' +
+    '</div>' +
+    '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);">' +
+      '<span>0%</span>' +
+      '<span style="color:var(--warning);font-weight:700;">25% (Target Min)</span>' +
+      '<span style="color:var(--success);font-weight:700;">30% (Target Max)</span>' +
+      '<span>100%</span>' +
+    '</div>';
+}
+
+// ══════════════════════════════════════════════════════════
+// CHARTS (unchanged — kept for reference)
+// ══════════════════════════════════════════════════════════
+function renderCharts(r) {
+  var isDark     = document.documentElement.getAttribute('data-theme') === 'dark';
+  var textColor  = isDark ? '#8ba8d4' : '#4a5a7a';
+  var gridColor  = isDark ? '#1a2d55' : '#dde4f0';
+
+  Chart.defaults.color       = textColor;
+  Chart.defaults.borderColor = gridColor;
+
+  Object.values(APP.charts).forEach(function(c) { if (c) c.destroy(); });
+  APP.charts = {};
+
+  APP.charts.leadStatus   = buildProductionDoughnut('chart-lead-status',   r.leadStatusDist);
+  APP.charts.chaserStatus = buildChaserDoughnut('chart-chaser-status',     r.chaserStatusDist);
+  APP.charts.processing   = buildProcessingBar('chart-processing',          r.processingStatusDist, isDark, gridColor);
+
+  if (document.getElementById('chart-centers') && APP.role === 'admin') {
+    APP.charts.centers = buildBar('chart-centers', r.centerStats, gridColor);
+  }
+
+  APP.charts.time = buildLine('chart-time', r.leadsOverTime, isDark, gridColor);
+  drawRtsGauge(r.production);
+}
+
+function buildProductionDoughnut(id, dist) {
+  var canvas = document.getElementById(id);
+  if (!canvas) return null;
+  var labels = Object.keys(dist);
+  var data   = labels.map(function(k) { return dist[k]; });
+  var colors = labels.map(function(l) {
+    return PROD_LEAD.indexOf(l) !== -1 ? '#059669' : '#94a3b8';
+  });
+  return new Chart(canvas, {
+    type: 'doughnut',
+    data: { labels: labels, datasets: [{ data: data, backgroundColor: colors, borderWidth: 2, borderColor: 'transparent' }] },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '62%',
+      plugins: {
+        legend: { position: 'right', labels: { boxWidth: 12, padding: 14, font: { size: 11 } } },
+        tooltip: { callbacks: { label: function(ctx) {
+          var lbl = PROD_LEAD.indexOf(ctx.label) !== -1 ? '✅ Production' : '🗑 Trash';
+          return ' ' + ctx.label + ': ' + ctx.raw + ' (' + lbl + ')';
+        }}}
+      }
+    }
+  });
+}
+
+function buildChaserDoughnut(id, dist) {
+  var canvas = document.getElementById(id);
+  if (!canvas) return null;
+  var labels = Object.keys(dist);
+  var data   = labels.map(function(k) { return dist[k]; });
+  var colors = labels.map(function(l) {
+    if (PROD_CHASER_SIGNED.indexOf(l) !== -1)    return '#059669';
+    if (PROD_CHASER_POTENTIAL.indexOf(l) !== -1) return '#d97706';
+    return '#94a3b8';
+  });
+  return new Chart(canvas, {
+    type: 'doughnut',
+    data: { labels: labels, datasets: [{ data: data, backgroundColor: colors, borderWidth: 2, borderColor: 'transparent' }] },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '62%',
+      plugins: {
+        legend: { position: 'right', labels: { boxWidth: 12, padding: 14, font: { size: 11 } } },
+        tooltip: { callbacks: { label: function(ctx) {
+          var cat = PROD_CHASER_SIGNED.indexOf(ctx.label) !== -1 ? '✅ Signed'
+                  : PROD_CHASER_POTENTIAL.indexOf(ctx.label) !== -1 ? '🔶 High Potential'
+                  : '🗑 Trash';
+          return ' ' + ctx.label + ': ' + ctx.raw + ' (' + cat + ')';
+        }}}
+      }
+    }
+  });
+}
+
+function buildProcessingBar(id, dist, isDark, gridColor) {
+  var canvas = document.getElementById(id);
+  if (!canvas) return null;
+  var labels = Object.keys(dist);
+  var data   = labels.map(function(k) { return dist[k]; });
+  var colors = labels.map(function(l) {
+    var u = l.toUpperCase();
+    if (u === 'APPROVED')    return '#059669';
+    if (u === 'IN PROCESS')  return '#2563eb';
+    if (u === 'DENIED')      return '#dc2626';
+    if (u === 'SHIPPED RTS') return '#ea580c';
+    return '#94a3b8';
+  });
+  return new Chart(canvas, {
+    type: 'bar',
+    data: { labels: labels, datasets: [{ data: data, backgroundColor: colors, borderRadius: 6, borderSkipped: false }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+        y: { grid: { color: gridColor }, beginAtZero: true, ticks: { precision: 0 } }
+      }
+    }
+  });
+}
+
+function buildBar(id, dist, gridColor) {
+  var canvas = document.getElementById(id);
+  if (!canvas) return null;
+  var labels = Object.keys(dist);
+  var data   = labels.map(function(k) { return dist[k]; });
+  return new Chart(canvas, {
+    type: 'bar',
+    data: { labels: labels, datasets: [{ data: data, backgroundColor: CHART_PALETTE, borderRadius: 6, borderSkipped: false }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+        y: { grid: { color: gridColor }, beginAtZero: true, ticks: { precision: 0 } }
+      }
+    }
+  });
+}
+
+function buildLine(id, timeData, isDark, gridColor) {
+  var canvas = document.getElementById(id);
+  if (!canvas || !timeData) return null;
+  return new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: timeData.labels,
+      datasets: [{
+        label: 'Leads', data: timeData.data,
+        borderColor: '#2563eb', backgroundColor: 'rgba(37,99,235,0.1)',
+        borderWidth: 2, pointRadius: 4, pointBackgroundColor: '#2563eb',
+        tension: 0.4, fill: true,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: gridColor }, ticks: { font: { size: 10 } } },
+        y: { grid: { color: gridColor }, beginAtZero: true, ticks: { precision: 0 } }
+      }
+    }
+  });
+}
+
+function drawRtsGauge(p) {
+  var canvas = document.getElementById('chart-rts-gauge');
+  if (!canvas || !p) return;
+
+  var rate = p.returnedDOs > 0 ? Math.round((p.rtsFromReturned / p.returnedDOs) * 100) : (p.rtsRate || 0);
+  var ctx   = canvas.getContext('2d');
+  var w = 200, h = 120;
+  canvas.width = w; canvas.height = h;
+
+  var cx = w / 2, cy = h - 10, r = 80;
+  ctx.beginPath(); ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 18;
+  ctx.arc(cx, cy, r, Math.PI, 2 * Math.PI); ctx.stroke();
+
+  [{ from: 0, to: 7, color: '#059669' }, { from: 7, to: 15, color: '#d97706' }, { from: 15, to: 30, color: '#dc2626' }]
+    .forEach(function(z) {
+      ctx.beginPath(); ctx.strokeStyle = z.color; ctx.lineWidth = 18;
+      ctx.arc(cx, cy, r, Math.PI + (z.from / 30) * Math.PI, Math.PI + (z.to / 30) * Math.PI);
+      ctx.stroke();
+    });
+
+  var needleAngle = Math.PI + (Math.min(rate, 30) / 30) * Math.PI;
+  ctx.save(); ctx.translate(cx, cy); ctx.rotate(needleAngle);
+  ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(r - 10, 0);
+  ctx.strokeStyle = '#0d1b3e'; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.stroke();
+  ctx.restore();
+
+  ctx.beginPath(); ctx.arc(cx, cy, 6, 0, 2 * Math.PI);
+  ctx.fillStyle = '#0d1b3e'; ctx.fill();
+
+  var color = rate <= 7 ? 'var(--success)' : rate <= 15 ? 'var(--warning)' : 'var(--danger)';
+  var label = document.getElementById('rts-gauge-label');
+  if (label) {
+    label.innerHTML = '<span class="rts-gauge-value" style="color:' + color + ';">' + rate + '%</span><br>' +
+      (rate <= 7 ? '✅ Excellent — well below threshold' : rate <= 15 ? '⚠️ Acceptable — stay below 15%' : '🚨 Critical — investigate immediately');
+  }
+}
+
+function rerenderCharts() {
+  if (APP.currentView === 'insights') loadInsights();
+}
+
+// ══════════════════════════════════════════════════════════
+// INCENTIVES MANAGEMENT
+// ══════════════════════════════════════════════════════════
+
+function loadIncentives() {
+  var tbody = document.getElementById('incentives-tbody');
+  tbody.innerHTML = '<tr><td colspan="7"><div class="loading-overlay"><div class="spinner"></div></div></td></tr>';
+  google.script.run
+    .withSuccessHandler(function(r) {
+      if (!r.success || !r.incentives || r.incentives.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><i class="fa-solid fa-trophy"></i><p>No incentives created yet.</p></div></td></tr>';
+        return;
+      }
+      tbody.innerHTML = r.incentives.map(function(inc) {
+        var isActive = inc.active;
+        return '<tr class="' + (isActive ? 'incentive-active-row' : '') + '">' +
+          '<td style="font-weight:700;">🏆 ' + esc(inc.prize) + '</td>' +
+          '<td>' + esc(inc.weeklyTarget) + '</td>' +
+          '<td style="font-size:12px;">' + esc(inc.rules || '—') + '</td>' +
+          '<td>' + esc(inc.whoIncluded) + '</td>' +
+          '<td>' + (isActive
+            ? '<span class="active-pill">Active</span>'
+            : '<span class="badge badge-neutral">Inactive</span>') + '</td>' +
+          '<td class="mono" style="font-size:11px;">' + esc(inc.createdAt) + '</td>' +
+          '<td><div class="action-btns">' +
+            '<button class="btn ' + (isActive ? 'btn-warning' : 'btn-success') + ' btn-sm" onclick="toggleIncentive(\'' + esc(inc.id) + '\',' + !isActive + ')">' +
+              (isActive ? '<i class="fa-solid fa-pause"></i> Deactivate' : '<i class="fa-solid fa-play"></i> Activate') +
+            '</button>' +
+            '<button class="btn btn-danger btn-sm" onclick="deleteIncentive(\'' + esc(inc.id) + '\')">' +
+              '<i class="fa-solid fa-trash"></i>' +
+            '</button>' +
+          '</div></td>' +
+        '</tr>';
+      }).join('');
+    })
+    .withFailureHandler(function(){})
+    .getIncentives(APP.token);
+}
+
+function submitCreateIncentive() {
+  var prize  = document.getElementById('inc-prize').value.trim();
+  var target = document.getElementById('inc-target').value.trim();
+  var rules  = document.getElementById('inc-rules').value.trim();
+  var who    = document.getElementById('inc-who').value.trim();
+  if (!prize || !target) { toast('Prize and target are required.', 'warning'); return; }
+  google.script.run
+    .withSuccessHandler(function(r) {
+      if (r.success) {
+        toast('Incentive created!', 'success');
+        document.getElementById('inc-prize').value  = '';
+        document.getElementById('inc-target').value = '';
+        document.getElementById('inc-rules').value  = '';
+        document.getElementById('inc-who').value    = '';
+        loadIncentives();
+      } else { toast(r.error || 'Failed.', 'error'); }
+    })
+    .withFailureHandler(function(){ toast('Connection error.', 'error'); })
+    .createIncentive(APP.token, { prize: prize, weeklyTarget: target, rules: rules, whoIncluded: who || 'All Centers' });
+}
+
+function toggleIncentive(id, activate) {
+  google.script.run
+    .withSuccessHandler(function(r) {
+      if (r.success) {
+        toast(activate ? '✅ Incentive activated and visible to all centers!' : 'Incentive deactivated.', activate ? 'success' : 'info');
+        loadIncentives();
+        if (activate) loadActiveIncentive();
+      } else { toast(r.error || 'Failed.', 'error'); }
+    })
+    .withFailureHandler(function(){ toast('Connection error.', 'error'); })
+    .updateIncentiveStatus(APP.token, id, activate);
+}
+
+function deleteIncentive(id) {
+  if (!confirm('Delete this incentive?')) return;
+  google.script.run
+    .withSuccessHandler(function(r) {
+      if (r.success) { toast('Incentive deleted.', 'success'); loadIncentives(); }
+      else toast(r.error || 'Failed.', 'error');
+    })
+    .withFailureHandler(function(){ toast('Connection error.', 'error'); })
+    .deleteIncentive(APP.token, id);
+}
+
+// ══════════════════════════════════════════════════════════
+// USER MANAGEMENT
+// ══════════════════════════════════════════════════════════
+
+function loadUsers() {
+  var tbody = document.getElementById('users-tbody');
+  tbody.innerHTML = '<tr><td colspan="5"><div class="loading-overlay"><div class="spinner"></div></div></td></tr>';
+  google.script.run
+    .withSuccessHandler(function(r) {
+      if (!r.success) { toast(r.error || 'Failed.', 'error'); return; }
+      if (!r.users || r.users.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><i class="fa-solid fa-users"></i><p>No users found.</p></div></td></tr>';
+        return;
+      }
+      tbody.innerHTML = r.users.map(function(u) {
+        var isActive = String(u.status).toLowerCase() === 'active';
+        return '<tr>' +
+          '<td style="font-weight:600;">' + esc(u.username) + '</td>' +
+          '<td><span class="role-badge ' + esc(u.role) + '">' + esc(u.role) + '</span></td>' +
+          '<td><span class="badge ' + (isActive ? 'badge-success' : 'badge-danger') + '">' + esc(u.status) + '</span></td>' +
+          '<td class="mono">' + esc(u.createdAt || '—') + '</td>' +
+          '<td><div class="action-btns">' +
+            '<button class="btn btn-ghost btn-sm" onclick="toggleUserStatus(\'' + esc(u.username) + '\',\'' + esc(u.status) + '\')" title="' + (isActive ? 'Deactivate' : 'Activate') + '">' +
+              '<i class="fa-solid ' + (isActive ? 'fa-user-slash' : 'fa-user-check') + '"></i>' +
+            '</button>' +
+            '<button class="btn btn-ghost btn-sm" onclick="openPwModal(\'' + esc(u.username) + '\')" title="Reset password">' +
+              '<i class="fa-solid fa-key"></i>' +
+            '</button>' +
+            '<button class="btn btn-danger btn-sm" onclick="deleteUser(\'' + esc(u.username) + '\')" title="Delete">' +
+              '<i class="fa-solid fa-trash"></i>' +
+            '</button>' +
+          '</div></td></tr>';
+      }).join('');
+    })
+    .withFailureHandler(function(){ toast('Connection error.', 'error'); })
+    .getUsers(APP.token);
+}
+
+function submitCreateUser() {
+  var username = document.getElementById('new-username').value.trim();
+  var password = document.getElementById('new-password').value;
+  var role     = document.getElementById('new-role').value;
+  if (!username || !password) { toast('Username and password are required.', 'warning'); return; }
+  if (password.length < 6)    { toast('Password must be at least 6 characters.', 'warning'); return; }
+  google.script.run
+    .withSuccessHandler(function(r) {
+      if (r.success) {
+        toast('User "' + username + '" created.', 'success');
+        document.getElementById('new-username').value = '';
+        document.getElementById('new-password').value = '';
+        loadUsers();
+      } else { toast(r.error || 'Failed.', 'error'); }
+    })
+    .withFailureHandler(function(){ toast('Connection error.', 'error'); })
+    .createUser(APP.token, { username: username, password: password, role: role });
+}
+
+function toggleUserStatus(username, currentStatus) {
+  var newStatus = String(currentStatus).toLowerCase() === 'active' ? 'inactive' : 'active';
+  if (!confirm('Set ' + username + ' to ' + newStatus + '?')) return;
+  google.script.run
+    .withSuccessHandler(function(r) {
+      if (r.success) { toast('Status updated.', 'success'); loadUsers(); }
+      else toast(r.error || 'Failed.', 'error');
+    })
+    .withFailureHandler(function(){ toast('Connection error.', 'error'); })
+    .updateUserStatus(APP.token, username, newStatus);
+}
+
+function deleteUser(username) {
+  if (!confirm('Delete user "' + username + '"? This cannot be undone.')) return;
+  google.script.run
+    .withSuccessHandler(function(r) {
+      if (r.success) { toast('User deleted.', 'success'); loadUsers(); }
+      else toast(r.error || 'Failed.', 'error');
+    })
+    .withFailureHandler(function(){ toast('Connection error.', 'error'); })
+    .deleteUser(APP.token, username);
+}
+
+function openPwModal(username) {
+  APP.pwResetTarget = username;
+  document.getElementById('pw-modal-username').textContent = 'Resetting password for: ' + username;
+  document.getElementById('pw-new').value = '';
+  document.getElementById('pw-modal').classList.remove('hidden');
+  setTimeout(function() { document.getElementById('pw-new').focus(); }, 100);
+}
+
+function closePwModal() {
+  document.getElementById('pw-modal').classList.add('hidden');
+  APP.pwResetTarget = null;
+}
+
+function submitResetPassword() {
+  var pw = document.getElementById('pw-new').value;
+  if (!pw || pw.length < 6) { toast('Password must be at least 6 characters.', 'warning'); return; }
+  google.script.run
+    .withSuccessHandler(function(r) {
+      if (r.success) { toast('Password reset.', 'success'); closePwModal(); }
+      else toast(r.error || 'Failed.', 'error');
+    })
+    .withFailureHandler(function(){ toast('Connection error.', 'error'); })
+    .resetUserPassword(APP.token, APP.pwResetTarget, pw);
+}
+
+// ── Activity Log ───────────────────────────────────────────
+function loadActivityLog() {
+  var tbody = document.getElementById('activity-tbody');
+  tbody.innerHTML = '<tr><td colspan="4"><div class="loading-overlay"><div class="spinner"></div></div></td></tr>';
+  google.script.run
+    .withSuccessHandler(function(r) {
+      if (!r.success || !r.logs || r.logs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4"><div class="empty-state"><i class="fa-solid fa-clock-rotate-left"></i><p>No activity recorded.</p></div></td></tr>';
+        return;
+      }
+      tbody.innerHTML = r.logs.map(function(l) {
+        return '<tr>' +
+          '<td class="mono">' + fmtTimestamp(l.timestamp) + '</td>' +
+          '<td style="font-weight:600;">' + esc(l.user) + '</td>' +
+          '<td>' + actionBadge(l.action) + '</td>' +
+          '<td style="color:var(--text-secondary);">' + esc(l.details) + '</td></tr>';
+      }).join('');
+    })
+    .withFailureHandler(function(){ toast('Connection error.', 'error'); })
+    .getActivityLog(APP.token);
+}
+
+// ── Toast ──────────────────────────────────────────────────
+function toast(msg, type) {
+  type = type || 'info';
+  var container = document.getElementById('toast-container');
+  var icons = { success:'fa-circle-check', error:'fa-circle-xmark', warning:'fa-triangle-exclamation', info:'fa-circle-info' };
+  var el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.innerHTML = '<i class="fa-solid ' + (icons[type] || icons.info) + '"></i>' +
+                 '<span class="toast-msg">' + esc(msg) + '</span>' +
+                 '<i class="fa-solid fa-xmark toast-close" onclick="this.parentElement.remove()"></i>';
+  container.appendChild(el);
+  setTimeout(function() { if (el.parentNode) el.remove(); }, 4000);
+  el.onclick = function() { el.remove(); };
+}
+
+// ── Production-aware Badge System ─────────────────────────
+function leadStatusBadge(val) {
+  if (!val || !String(val).trim()) return '';
+  var v = String(val).trim();
+  if (PROD_LEAD.indexOf(v) !== -1) {
+    return '<span class="badge badge-production">✓ ' + esc(v) + '</span>';
+  }
+  return '<span class="badge badge-trash">' + esc(v) + '</span>';
+}
+
+function chaserStatusBadge(val) {
+  if (!val || !String(val).trim()) return '';
+  var v = String(val).trim();
+  if (PROD_CHASER_SIGNED.indexOf(v) !== -1) {
+    return '<span class="badge badge-approved">✓ ' + esc(v) + '</span>';
+  }
+  if (PROD_CHASER_POTENTIAL.indexOf(v) !== -1) {
+    return '<span class="badge badge-potential">⏳ ' + esc(v) + '</span>';
+  }
+  return '<span class="badge badge-trash">' + esc(v) + '</span>';
+}
+
+function processingStatusBadge(val, tooltip) {
+  if (!val || !String(val).trim()) return '';
+  var v = String(val).trim();
+  var t = tooltip && String(tooltip).trim();
+  var titleAttr = t ? ' title="' + esc(t) + '"' : '';
+  var u = v.toUpperCase();
+  if (u === 'APPROVED')     return '<span class="badge badge-approved"' + titleAttr + '>💰 ' + esc(v) + '</span>';
+  if (u === 'IN PROCESS')   return '<span class="badge badge-inprocess"' + titleAttr + '>⚙ ' + esc(v) + '</span>';
+  if (u === 'DENIED')       return '<span class="badge badge-denied"' + titleAttr + '>✗ ' + esc(v) + '</span>';
+  if (u === 'SHIPPED RTS')  return '<span class="badge badge-rts"' + titleAttr + '>⚠ ' + esc(v) + '</span>';
+  return '<span class="badge badge-neutral"' + titleAttr + '>' + esc(v) + '</span>';
+}
+
+function actionBadge(action) {
+  var map = {
+    'LOGIN':'badge-success','LOGOUT':'badge-neutral','LOGIN_FAILED':'badge-danger',
+    'VIEW_LEAD':'badge-info','VIEW_LEADS':'badge-info','ADD_NOTE':'badge-primary',
+    'CREATE_USER':'badge-warning','UPDATE_USER':'badge-warning','DELETE_USER':'badge-danger',
+    'RESET_PASSWORD':'badge-warning','CHAT_MSG':'badge-info','CREATE_INCENTIVE':'badge-success',
+  };
+  var cls = map[action] || 'badge-neutral';
+  return '<span class="badge ' + cls + '">' + esc(action) + '</span>';
+}
+
+// ── Helpers ────────────────────────────────────────────────
+function esc(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
+}
+
+function fmtTimestamp(val) {
+  if (!val) return '—';
+  try {
+    var d = new Date(val);
+    if (isNaN(d)) return String(val);
+    return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  } catch (_) { return String(val); }
+}
+
+// ── Keyboard Shortcuts ─────────────────────────────────────
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    closeLead();
+    pcpCloseModal();
+    closePwModal();
+    closeLogoutModal();
+    if (document.getElementById('notif-panel').classList.contains('open')) toggleNotifPanel();
+  }
+});
+
+// ══════════════════════════════════════════════════════════
+// PCP MODULE
+// ══════════════════════════════════════════════════════════
+
+const PCP = {
+  page: 1, total: 0, totalPages: 0,
+  loading: false, search: '', filters: {},
+  searchDebounce: null,
+};
+
+// ── View init ──────────────────────────────────────────────
+function pcpInit() {
+  pcpLoadStats();
+  pcpLoadLeads(1);
+  if (APP.role === 'admin') pcpLoadCenterFilter();
+}
+
+function pcpRefresh() {
+  pcpLoadStats();
+  pcpLoadLeads(PCP.page);
+}
+
+// ── Stats ──────────────────────────────────────────────────
+function pcpLoadStats() {
+  google.script.run
+    .withSuccessHandler(function(r) {
+      if (!r.success) return;
+      document.getElementById('pcp-stat-total').textContent    = r.total;
+      document.getElementById('pcp-stat-approved').textContent = r.approved;
+      document.getElementById('pcp-stat-inprocess').textContent= r.inProcess;
+      document.getElementById('pcp-stat-denied').textContent   = r.denied;
+    })
+    .withFailureHandler(function(){})
+    .getPcpStats(APP.token);
+}
+
+// ── Center filter (admin) ──────────────────────────────────
+function pcpLoadCenterFilter() {
+  google.script.run
+    .withSuccessHandler(function(r) {
+      if (!r.success) return;
+      var sel = document.getElementById('pcp-filter-center');
+      if (!sel) return;
+      var cur = sel.value;
+      sel.innerHTML = '<option value="">All Centers</option>';
+      (r.centerCodes || []).forEach(function(cc) {
+        var o = document.createElement('option');
+        o.value = cc; o.textContent = cc;
+        if (cc === cur) o.selected = true;
+        sel.appendChild(o);
+      });
+    })
+    .withFailureHandler(function(){})
+    .getFilterOptions(APP.token);
+}
+
+// ── Search & filters ───────────────────────────────────────
+function pcpOnSearch(val) {
+  clearTimeout(PCP.searchDebounce);
+  PCP.searchDebounce = setTimeout(function() {
+    PCP.search = val.trim();
+    pcpLoadLeads(1);
+  }, 400);
+}
+
+function pcpApplyFilters() {
+  PCP.filters = {
+    procStatus : document.getElementById('pcp-filter-proc').value,
+    centerCode : APP.role === 'admin' ? (document.getElementById('pcp-filter-center') || {}).value || '' : '',
+  };
+  pcpLoadLeads(1);
+}
+
+function pcpClearFilters() {
+  document.getElementById('pcp-search').value        = '';
+  document.getElementById('pcp-filter-proc').value   = '';
+  if (APP.role === 'admin') {
+    var fc = document.getElementById('pcp-filter-center');
+    if (fc) fc.value = '';
+  }
+  PCP.search  = '';
+  PCP.filters = {};
+  pcpLoadLeads(1);
+}
+
+// ── Load & render table ────────────────────────────────────
+function pcpLoadLeads(page) {
+  if (PCP.loading) return;
+  PCP.loading = true;
+  PCP.page    = page;
+  var tbody = document.getElementById('pcp-tbody');
+  tbody.innerHTML = '<tr><td colspan="8"><div class="loading-overlay"><div class="spinner"></div></div></td></tr>';
+
+  google.script.run
+    .withSuccessHandler(function(r) {
+      PCP.loading    = false;
+      PCP.total      = r.total;
+      PCP.totalPages = r.totalPages;
+      if (!r.success) { toast(r.error || 'Failed to load PCP leads.', 'error'); return; }
+      pcpRenderTable(r.leads);
+      pcpRenderPagination(r.page, r.totalPages, r.total);
+    })
+    .withFailureHandler(function() {
+      PCP.loading = false;
+      toast('Connection error loading PCP leads.', 'error');
+      tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><i class="fa-solid fa-triangle-exclamation"></i><p>Failed to load</p></div></td></tr>';
+    })
+    .getPcpLeads(APP.token, { page: page, search: PCP.search, filters: PCP.filters });
+}
+
+function pcpRenderTable(leads) {
+  var tbody   = document.getElementById('pcp-tbody');
+  var isAdmin = APP.role === 'admin';
+  var count   = document.getElementById('pcp-table-count');
+
+  if (!leads || leads.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><i class="fa-solid fa-inbox"></i><p>No PCP records found</p></div></td></tr>';
+    count.textContent = '';
+    return;
+  }
+  count.textContent = leads.length + ' record' + (leads.length !== 1 ? 's' : '') + ' on this page';
+
+  tbody.innerHTML = leads.map(function(l, i) {
+    var rowNum = (PCP.page - 1) * 50 + i + 1;
+    return '<tr onclick="pcpOpenModal(' + l.sRow + ')">' +
+      '<td class="mono" style="font-size:11px;color:var(--text-muted);">' + rowNum + '</td>' +
+      '<td>' + esc(l.timestamp) + '</td>' +
+      '<td class="name-cell">' + esc(l.fullName || '—') + '</td>' +
+      '<td class="phone-cell">' + esc(l.phone || '—') + '</td>' +
+      '<td>' + (l.leadType ? '<span class="badge badge-info">' + esc(l.leadType) + '</span>' : '—') + '</td>' +
+      '<td>' + processingStatusBadge(l.procStatusCenters) + '</td>' +
+      '<td>' + (l.snsResult ? '<span class="badge badge-neutral">' + esc(l.snsResult) + '</span>' : '—') + '</td>' +
+      (isAdmin ? '<td class="mono" style="font-size:12px;">' + esc(l.centerCode || '—') + '</td>' : '') +
+    '</tr>';
+  }).join('');
+}
+
+function pcpRenderPagination(page, totalPages, total) {
+  var info  = document.getElementById('pcp-pagination-info');
+  var btns  = document.getElementById('pcp-pagination-btns');
+  var start = (page - 1) * 50 + 1;
+  var end   = Math.min(page * 50, total);
+  info.textContent = 'Showing ' + start + '–' + end + ' of ' + total;
+
+  var html = '<button class="page-btn" ' + (page <= 1 ? 'disabled' : '') +
+             ' onclick="pcpLoadLeads(' + (page - 1) + ')"><i class="fa-solid fa-chevron-left"></i></button>';
+  pageRange(page, totalPages).forEach(function(p) {
+    if (p === '…') { html += '<button class="page-btn" disabled>…</button>'; }
+    else { html += '<button class="page-btn' + (p === page ? ' active' : '') + '" onclick="pcpLoadLeads(' + p + ')">' + p + '</button>'; }
+  });
+  html += '<button class="page-btn" ' + (page >= totalPages ? 'disabled' : '') +
+          ' onclick="pcpLoadLeads(' + (page + 1) + ')"><i class="fa-solid fa-chevron-right"></i></button>';
+  btns.innerHTML = html;
+}
+
+// ── Modal ──────────────────────────────────────────────────
+function pcpOpenModal(sRow) {
+  var modal = document.getElementById('pcp-modal');
+  modal.classList.remove('hidden');
+  document.getElementById('pcp-modal-loading').style.display = 'flex';
+  document.querySelectorAll('#pcp-modal .modal-tab-pane').forEach(function(p) { p.classList.remove('active'); p.classList.add('hidden'); });
+  document.getElementById('pcp-modal-name').textContent = 'Loading…';
+  document.getElementById('pcp-modal-row').textContent  = 'Row #' + sRow;
+
+  google.script.run
+    .withSuccessHandler(function(r) {
+      document.getElementById('pcp-modal-loading').style.display = 'none';
+      if (!r.success) { toast(r.error || 'Failed to load record.', 'error'); pcpCloseModal(); return; }
+      pcpFillModal(r.lead);
+    })
+    .withFailureHandler(function() {
+      document.getElementById('pcp-modal-loading').style.display = 'none';
+      toast('Connection error.', 'error'); pcpCloseModal();
+    })
+    .getPcpLeadDetails(APP.token, sRow);
+}
+
+function pcpFillModal(l) {
+  document.getElementById('pcp-modal-name').textContent = (l.firstName + ' ' + l.lastName).trim() || '—';
+  document.getElementById('pcp-modal-row').textContent  = 'PCP · Row #' + l.sRow;
+  document.getElementById('pcp-modal-badges').innerHTML = processingStatusBadge(l.procStatusCenters);
+
+  // Overview
+  pcpSet('pd-timestamp',  l.timestamp);
+  pcpSet('pd-center-code',l.centerCode);
+  pcpSet('pd-center-name',l.centerName);
+  pcpSet('pd-closer-name',l.closerName);
+  pcpSet('pd-lead-type',  l.leadType);
+  pcpSet('pd-products',   l.requestedProducts);
+  pcpSet('pd-sns',        l.snsResult);
+  pcpSetHtml('pd-proc-status', processingStatusBadge(l.procStatusCenters) || '—');
+  pcpSet('pd-do-note',    l.doNote);
+  // Patient
+  pcpSet('pd-first-name', l.firstName);
+  pcpSet('pd-last-name',  l.lastName);
+  pcpSet('pd-dob',        l.dob);
+  pcpSet('pd-gender',     l.gender);
+  pcpSet('pd-med-id',     l.medId);
+  pcpSet('pd-phone',      l.phone);
+  pcpSet('pd-height',     l.height);
+  pcpSet('pd-weight',     l.weight);
+  pcpSet('pd-shoe-size',  l.shoeSize);
+  pcpSet('pd-waist-size', l.waistSize);
+  pcpSet('pd-address',    l.address);
+  pcpSet('pd-city',       l.city);
+  pcpSet('pd-state',      l.state);
+  pcpSet('pd-zip',        l.zip);
+  // Doctor
+  pcpSet('pd-doc-name',    l.doctorName);
+  pcpSet('pd-doc-npi',     l.doctorNpi);
+  pcpSet('pd-doc-phone',   l.doctorPhone);
+  pcpSet('pd-doc-fax',     l.doctorFax);
+  pcpSet('pd-doc-address', l.doctorAddress);
+  // Links
+  pcpSetLink('pd-do-link',     l.doLink);
+  pcpSetLink('pd-cn-link',     l.cnLink);
+  pcpSetLink('pd-record-link', l.recordLink);
+  pcpSet('pd-note', l.note);
+
+  pcpSwitchTab('pcp-overview');
+}
+
+function pcpSet(id, val) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  if (!val || String(val).trim() === '') {
+    el.innerHTML = '<span style="color:var(--text-muted);font-style:italic;">—</span>';
+  } else { el.textContent = String(val); }
+}
+
+function pcpSetHtml(id, html) {
+  var el = document.getElementById(id);
+  if (el) el.innerHTML = html;
+}
+
+function pcpSetLink(id, url) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  if (!url || !url.trim()) {
+    el.innerHTML = '<span style="color:var(--text-muted);font-style:italic;">—</span>';
+  } else {
+    el.innerHTML = '<a href="' + esc(url) + '" target="_blank" style="color:var(--accent-primary);text-decoration:underline;">' +
+                   '<i class="fa-solid fa-arrow-up-right-from-square" style="margin-right:4px;"></i>' + esc(url.length > 60 ? url.slice(0,60)+'…' : url) + '</a>';
+  }
+}
+
+function pcpSwitchTab(tabName) {
+  document.querySelectorAll('#pcp-modal .modal-tab').forEach(function(t) {
+    t.classList.toggle('active', t.getAttribute('data-tab') === tabName);
+  });
+  document.querySelectorAll('#pcp-modal .modal-tab-pane').forEach(function(p) {
+    p.classList.remove('active'); p.classList.add('hidden');
+  });
+  var pane = document.getElementById('tab-' + tabName);
+  if (pane) { pane.classList.remove('hidden'); pane.classList.add('active'); }
+}
+
+function pcpCloseModal() {
+  document.getElementById('pcp-modal').classList.add('hidden');
+}
+
+</script>
+</body>
+</html>

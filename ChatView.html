@@ -1,0 +1,1362 @@
+<!-- ═══════════════════════════════════════════════════════════════════════
+     ChatView.html — Embedded chat fragment
+     Included via <?!= include('ChatView') ?> into #view-chat in index.html.
+
+     Auth  : Uses APP.token from CRM globals (no separate login).
+     State : CHAT object (isolated from CRM's APP namespace).
+     Entry : chatInit()    — called by CRM's showView('chat').
+     Exit  : chatCleanup() — called by CRM's showView(otherView).
+     CSS   : Scoped under #view-chat; reuses CRM CSS variables throughout.
+════════════════════════════════════════════════════════════════════════ -->
+
+<style>
+/* ── Layout ──────────────────────────────────────────────────────── */
+#view-chat.active {
+  display: flex !important;
+  flex-direction: row;
+  height: 100%;
+  overflow: hidden;
+}
+.cht-container { display: flex; flex: 1; overflow: hidden; height: 100%; }
+
+/* ── Sidebar ─────────────────────────────────────────────────────── */
+.cht-sidebar {
+  width: 224px; min-width: 224px;
+  background: var(--bg-sidebar);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.cht-sidebar-head {
+  padding: 14px 12px 10px;
+  border-bottom: 1px solid rgba(255,255,255,.04);
+  flex-shrink: 0;
+}
+.cht-sidebar-title {
+  font-size: 10px; font-weight: 700; letter-spacing: .16em;
+  text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px;
+}
+.cht-search {
+  display: flex; align-items: center; gap: 7px;
+  background: rgba(255,255,255,.05); border: 1px solid var(--border);
+  border-radius: 8px; padding: 7px 10px;
+}
+.cht-search input {
+  flex: 1; background: none; border: none; outline: none;
+  color: var(--text-sidebar); font-size: 12px;
+}
+.cht-search input::placeholder { color: var(--text-muted); }
+.cht-section-label {
+  font-size: 9px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .18em; color: var(--text-muted);
+  padding: 12px 14px 4px; opacity: .6;
+}
+.cht-conv-list { flex: 1; overflow-y: auto; padding: 6px 6px; }
+.cht-conv-item {
+  display: flex; align-items: center; gap: 9px;
+  width: 100%; padding: 9px 8px; border-radius: 9px;
+  background: none; border: 1px solid transparent;
+  cursor: pointer; text-align: left; color: var(--text-sidebar);
+  transition: background 140ms, border-color 140ms;
+  margin-bottom: 2px;
+}
+.cht-conv-item:hover  { background: var(--bg-sidebar-h); }
+.cht-conv-item.active {
+  background: var(--bg-sidebar-h);
+  border-color: rgba(255,255,255,.06);
+  box-shadow: 0 1px 6px rgba(0,0,0,.2);
+}
+.cht-conv-info { flex: 1; min-width: 0; }
+.cht-conv-name    { font-size: 12.5px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cht-conv-preview { font-size: 11px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
+.cht-conv-meta    { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; }
+.cht-conv-time    { font-size: 10px; color: var(--text-muted); font-family: 'DM Mono', monospace; }
+.cht-unread-badge {
+  background: var(--danger); color: #fff;
+  border-radius: 10px; min-width: 16px; height: 16px;
+  padding: 0 4px; font-size: 9px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.cht-unread-badge:empty { display: none; }
+
+/* Avatar chips */
+.cht-avatar {
+  width: 34px; height: 34px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; flex-shrink: 0;
+}
+.cht-avatar-closer    { background: rgba(37,99,235,.2);  color: #60a5fa; border: 1px solid rgba(37,99,235,.3); }
+.cht-avatar-center    { background: rgba(5,150,105,.15); color: #34d399; border: 1px solid rgba(5,150,105,.3); }
+.cht-avatar-broadcast { background: rgba(217,119,6,.15); color: #fbbf24; border: 1px solid rgba(217,119,6,.3); }
+
+/* Sidebar footer */
+.cht-sidebar-foot {
+  padding: 10px 10px 12px; border-top: 1px solid rgba(255,255,255,.05);
+  flex-shrink: 0;
+}
+.cht-user-bar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px; border-radius: 8px;
+  background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.06);
+}
+.cht-user-name { font-size: 12px; font-weight: 600; color: #fff; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.cht-user-role { font-size: 9px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .08em; }
+.cht-status-toggle {
+  background: none; border: none; font-size: 14px; cursor: pointer;
+  padding: 3px; border-radius: 5px; transition: background 130ms;
+}
+.cht-status-toggle:hover { background: rgba(255,255,255,.08); }
+
+/* ── Main chat area ───────────────────────────────────────────────── */
+.cht-main {
+  flex: 1; display: flex; flex-direction: column;
+  overflow: hidden; background: var(--bg-base); min-width: 0;
+}
+
+/* Chat header */
+.cht-header {
+  background: var(--bg-surface); border-bottom: 1px solid var(--border);
+  padding: 12px 16px; display: flex; align-items: center; gap: 12px;
+  flex-shrink: 0; box-shadow: var(--shadow-sm);
+}
+.cht-h-avatar {
+  width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700;
+}
+.cht-h-name   { font-size: 14px; font-weight: 700; color: var(--text-primary); }
+.cht-h-status { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+.cht-h-actions { display: flex; gap: 5px; margin-left: auto; }
+.cht-h-btn {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: var(--bg-surface2); border: 1.5px solid var(--border);
+  color: var(--text-muted); display: flex; align-items: center; justify-content: center;
+  font-size: 13px; cursor: pointer; transition: all 150ms;
+}
+.cht-h-btn:hover  { border-color: var(--accent-primary); color: var(--accent-primary); }
+.cht-h-btn.danger:hover { background: var(--danger-bg); color: var(--danger); border-color: var(--danger); }
+
+/* Messages scroll */
+.cht-messages {
+  flex: 1; overflow-y: auto; padding: 18px 20px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.cht-empty {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  color: var(--text-muted); padding: 40px;
+}
+
+/* Date separator */
+.cht-date-sep {
+  display: flex; align-items: center; gap: 10px; margin: 18px 0 10px;
+}
+.cht-date-sep::before, .cht-date-sep::after {
+  content: ''; flex: 1; height: 1px; background: var(--border);
+}
+.cht-date-sep span {
+  font-size: 10px; font-weight: 700; letter-spacing: .15em;
+  text-transform: uppercase; color: var(--text-muted);
+  padding: 3px 10px; border: 1px solid var(--border);
+  border-radius: 99px; background: var(--bg-surface2);
+  font-family: 'DM Mono', monospace;
+}
+
+/* Message wrappers */
+.cht-msg-wrap {
+  display: flex; flex-direction: column;
+  max-width: 62%; width: fit-content;
+  position: relative; margin-bottom: 1px;
+  animation: chtMsgIn .18s ease;
+}
+@keyframes chtMsgIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+.cht-msg-wrap.cht-mine    { align-self: flex-end;  align-items: flex-end; }
+.cht-msg-wrap.cht-theirs  { align-self: flex-start; align-items: flex-start; }
+.cht-msg-wrap.cht-broadcast { align-self: center; align-items: center; max-width: 80%; }
+.cht-msg-wrap.cht-mine   + .cht-msg-wrap.cht-theirs,
+.cht-msg-wrap.cht-theirs + .cht-msg-wrap.cht-mine  { margin-top: 12px; }
+
+.cht-team-tag {
+  font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  padding: 2px 9px; border-radius: 99px; margin-bottom: 4px;
+  background: rgba(5,150,105,.12); color: #34d399; border: 1px solid rgba(5,150,105,.2);
+}
+.cht-team-tag.is-mine {
+  background: rgba(37,99,235,.12); color: #60a5fa; border-color: rgba(37,99,235,.2);
+}
+.cht-msg-sender {
+  font-size: 10px; font-weight: 700; color: #34d399; margin-bottom: 4px;
+  padding-left: 12px; letter-spacing: .04em; text-transform: uppercase;
+}
+.cht-msg-wrap.cht-broadcast .cht-msg-sender { color: #fbbf24; text-align: center; padding-left: 0; }
+
+/* Bubbles */
+.cht-bubble {
+  padding: 10px 14px; border-radius: 16px;
+  line-height: 1.6; font-size: 13.5px; word-break: break-word;
+  white-space: pre-wrap; position: relative;
+}
+.cht-mine .cht-bubble {
+  background: linear-gradient(145deg, var(--accent-primary), #1d4ed8);
+  color: #fff; border-radius: 18px 18px 4px 18px;
+  box-shadow: 0 4px 18px rgba(37,99,235,.28), 0 1px 4px rgba(0,0,0,.15);
+}
+.cht-theirs .cht-bubble {
+  background: var(--bg-surface); border: 1px solid var(--border);
+  color: var(--text-primary); border-radius: 18px 18px 18px 4px;
+  box-shadow: var(--shadow-sm);
+}
+.cht-broadcast .cht-bubble {
+  background: rgba(217,119,6,.1); color: var(--warning);
+  border: 1px solid rgba(217,119,6,.2); border-radius: 12px;
+  text-align: center; font-weight: 600;
+}
+
+/* Reply quote inside bubble */
+.cht-reply-quote {
+  font-size: 12px; color: var(--text-secondary);
+  border-left: 3px solid rgba(255,255,255,.4);
+  padding: 4px 10px; margin-bottom: 8px;
+  border-radius: 4px; background: rgba(0,0,0,.12);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 100%;
+}
+.cht-theirs .cht-reply-quote { border-color: var(--accent-primary); background: var(--bg-surface2); }
+
+/* Hover actions on bubble */
+.cht-msg-actions {
+  display: none; position: absolute; top: -38px;
+  background: var(--bg-surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 3px; gap: 1px;
+  box-shadow: var(--shadow-md); z-index: 20; flex-direction: row;
+  white-space: nowrap;
+}
+.cht-msg-wrap:hover .cht-msg-actions { display: flex; }
+.cht-mine   .cht-msg-actions { right: 0; }
+.cht-theirs .cht-msg-actions { left: 0; }
+.cht-act-btn {
+  background: none; border: none; color: var(--text-muted);
+  font-size: 11px; font-weight: 600; padding: 4px 9px;
+  border-radius: 7px; cursor: pointer; font-family: 'DM Sans', sans-serif;
+  transition: all .12s;
+}
+.cht-act-btn:hover      { background: var(--bg-surface2); color: var(--text-primary); }
+.cht-act-btn.cht-del-btn:hover { color: var(--danger); background: var(--danger-bg); }
+
+.cht-ts-row { font-size: 10px; color: var(--text-muted); margin-top: 4px; padding: 0 2px; font-family: 'DM Mono', monospace; }
+.cht-mine   .cht-ts-row { align-self: flex-end; }
+.cht-theirs .cht-ts-row { align-self: flex-start; }
+
+/* Reply banner */
+.cht-reply-banner {
+  background: var(--bg-surface2); border-left: 3px solid var(--accent-primary);
+  border-top: 1px solid var(--border);
+  padding: 8px 14px; flex-shrink: 0;
+  align-items: center; gap: 8px; font-size: 12px; color: var(--text-secondary);
+}
+.cht-reply-route {
+  font-size: 10px; font-weight: 700; color: #34d399;
+  background: rgba(5,150,105,.12); border-radius: 99px; padding: 2px 8px; border: 1px solid rgba(5,150,105,.2);
+}
+.cht-reply-close {
+  margin-left: auto; background: none; border: none; color: var(--text-muted);
+  font-size: 12px; cursor: pointer; padding: 3px 6px; border-radius: 5px;
+  transition: color .15s;
+}
+.cht-reply-close:hover { color: var(--danger); }
+
+/* Input area */
+.cht-input-area {
+  padding: 12px 16px 14px; background: var(--bg-surface);
+  border-top: 1px solid var(--border); flex-shrink: 0;
+  display: flex; gap: 10px; align-items: flex-end;
+}
+.cht-textarea {
+  flex: 1; background: var(--bg-surface2); border: 1.5px solid var(--border);
+  border-radius: 14px; color: var(--text-primary); font-size: 13.5px;
+  line-height: 1.55; padding: 11px 15px; resize: none; outline: none;
+  min-height: 44px; max-height: 120px; font-family: 'DM Sans', sans-serif;
+  transition: border-color .2s, box-shadow .2s;
+}
+.cht-textarea:focus { border-color: var(--accent-primary); box-shadow: 0 0 0 3px var(--accent-glow); }
+.cht-textarea::placeholder { color: var(--text-muted); }
+.cht-send-btn {
+  width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0;
+  background: var(--accent-primary); border: none; color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 3px 14px rgba(37,99,235,.32); cursor: pointer;
+  transition: opacity .15s, transform .12s;
+}
+.cht-send-btn:hover:not(:disabled) { opacity: .88; transform: translateY(-1px); }
+.cht-send-btn:disabled { opacity: .28; cursor: not-allowed; }
+
+/* ── Right panel ──────────────────────────────────────────────────── */
+.cht-right-panel {
+  width: 252px; min-width: 252px;
+  background: var(--bg-surface); border-left: 1px solid var(--border);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.cht-rp-tabs {
+  display: flex; border-bottom: 1px solid var(--border);
+  flex-shrink: 0; padding: 0 4px;
+}
+.cht-rp-tab {
+  flex: 1; padding: 12px 4px; background: none; border: none;
+  border-bottom: 2px solid transparent; color: var(--text-muted);
+  font-size: 14px; cursor: pointer; transition: all .15s; margin-bottom: -1px;
+}
+.cht-rp-tab:hover  { color: var(--text-primary); }
+.cht-rp-tab.active { color: var(--accent-primary); border-color: var(--accent-primary); }
+.cht-rp-panel { display: none; flex: 1; flex-direction: column; overflow-y: auto; padding: 12px; gap: 10px; }
+.cht-rp-panel.cht-rp-active { display: flex; }
+
+/* ── Ring overlay ─────────────────────────────────────────────────── */
+.cht-ring-overlay {
+  position: fixed; inset: 0; z-index: 300;
+  background: rgba(0,0,0,.65); backdrop-filter: blur(8px);
+  display: none; align-items: center; justify-content: center;
+}
+.cht-ring-card {
+  background: var(--bg-surface); border: 1px solid var(--border);
+  border-radius: 20px; padding: 40px 48px; text-align: center;
+  box-shadow: var(--shadow-lg); animation: chtRingIn .3s ease;
+  max-width: 380px; width: 90vw;
+}
+@keyframes chtRingIn { from { transform: scale(.88); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.cht-ring-from { font-size: 18px; font-weight: 700; margin-bottom: 8px; color: var(--text-primary); }
+.cht-ring-msg  { font-size: 13px; color: var(--text-secondary); margin-bottom: 24px; }
+
+/* Responsive hide right panel on small screens */
+@media (max-width: 1100px) { .cht-right-panel { display: none; } }
+@media (max-width: 700px)  { .cht-sidebar { width: 60px; min-width: 60px; } .cht-conv-info, .cht-conv-meta, .cht-sidebar-title { display: none; } }
+
+/* ── Image messages ──────────────────────────────────────────────── */
+.cht-img-bubble {
+  max-width: 260px; border-radius: 12px; overflow: hidden;
+  cursor: zoom-in; display: block; border: 1px solid rgba(255,255,255,.1);
+}
+.cht-mine .cht-img-bubble { border-color: rgba(255,255,255,.2); }
+
+/* Image preview bar (above input) */
+.cht-img-preview-bar {
+  display: none; align-items: center; gap: 10px;
+  padding: 8px 16px; background: var(--bg-surface2);
+  border-top: 1px solid var(--border); flex-shrink: 0;
+}
+.cht-img-preview-thumb {
+  width: 48px; height: 48px; object-fit: cover;
+  border-radius: 8px; border: 1px solid var(--border);
+}
+.cht-img-preview-name {
+  flex: 1; font-size: 12px; color: var(--text-secondary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cht-img-preview-cancel {
+  background: none; border: none; color: var(--text-muted);
+  font-size: 13px; cursor: pointer; padding: 4px 7px;
+  border-radius: 6px; transition: color .15s;
+}
+.cht-img-preview-cancel:hover { color: var(--danger); }
+
+/* Attach button */
+.cht-attach-btn {
+  width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0;
+  background: var(--bg-surface2); border: 1.5px solid var(--border);
+  color: var(--text-muted); display: flex; align-items: center;
+  justify-content: center; font-size: 15px; cursor: pointer;
+  transition: all .15s;
+}
+.cht-attach-btn:hover { border-color: var(--accent-primary); color: var(--accent-primary); }
+
+/* Upload progress shimmer on send button */
+.cht-send-btn.uploading { animation: chtUploadPulse 1s ease infinite; }
+@keyframes chtUploadPulse { 0%,100%{opacity:.4} 50%{opacity:1} }
+
+/* Lightbox */
+.cht-lightbox {
+  position: fixed; inset: 0; z-index: 500;
+  background: rgba(0,0,0,.85); display: none;
+  align-items: center; justify-content: center; cursor: zoom-out;
+}
+.cht-lightbox img { max-width: 92vw; max-height: 90vh; border-radius: 10px; }
+
+
+</style>
+
+<!-- ═══ CHAT CONTAINER ═══════════════════════════════════════════════ -->
+<div class="cht-container" id="cht_container">
+
+  <!-- ── Left sidebar: conversation list ── -->
+  <nav class="cht-sidebar" id="cht_sidebar">
+    <div class="cht-sidebar-head">
+      <div class="cht-sidebar-title">Conversations</div>
+      <div class="cht-search">
+        <i class="fa-solid fa-magnifying-glass" style="color:var(--text-muted);font-size:11px;"></i>
+        <input type="text" id="cht_conv_search" placeholder="Search…" autocomplete="off">
+      </div>
+    </div>
+
+    <div class="cht-conv-list" id="cht_conv_list">
+      <div style="padding:20px 10px;color:var(--text-muted);font-size:11px;text-align:center;">Connecting…</div>
+    </div>
+
+    <div class="cht-sidebar-foot">
+      <div class="cht-user-bar">
+        <div class="cht-avatar cht-avatar-closer" id="cht_my_avatar">?</div>
+        <div style="flex:1;min-width:0;">
+          <div class="cht-user-name" id="cht_my_name">—</div>
+          <div class="cht-user-role" id="cht_my_role">—</div>
+        </div>
+        <button class="cht-status-toggle" id="cht_status_toggle" onclick="chatCycleStatus()" title="Cycle status">🟢</button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── Center: messages + input ── -->
+  <div class="cht-main" id="cht_main">
+
+    <div class="cht-header" id="cht_header">
+      <div class="cht-h-avatar cht-avatar-closer" id="cht_h_avatar">?</div>
+      <div style="flex:1;min-width:0;">
+        <div class="cht-h-name" id="cht_h_name">Select a conversation</div>
+        <div class="cht-h-status" id="cht_h_status">—</div>
+      </div>
+      <div class="cht-h-actions">
+        <button class="cht-h-btn danger" id="cht_ring_btn" style="display:none;"
+                onclick="chatDoSendRing()" title="Ring Closing Team">
+          <i class="fa-solid fa-bell"></i>
+        </button>
+        <button class="cht-h-btn" onclick="chatRefreshCurrent()" title="Refresh">
+          <i class="fa-solid fa-rotate-right"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="cht-messages" id="cht_messages">
+      <div class="cht-empty">
+        <i class="fa-solid fa-comments" style="font-size:36px;opacity:.15;margin-bottom:12px;"></i>
+        <div>Select a conversation to begin</div>
+      </div>
+    </div>
+
+    <div class="cht-reply-banner" id="cht_reply_banner" style="display:none;">
+      <i class="fa-solid fa-reply" style="color:var(--accent-primary);"></i>
+      <span id="cht_reply_preview" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+      <span class="cht-reply-route" id="cht_reply_route" style="display:none;"></span>
+      <button class="cht-reply-close" onclick="chatCancelReply()">✕</button>
+    </div>
+
+    <!-- ── Image preview bar (shown when image is staged) ── -->
+    <div class="cht-img-preview-bar" id="cht_img_preview_bar">
+      <img class="cht-img-preview-thumb" id="cht_img_preview_thumb" src="" alt="">
+      <span class="cht-img-preview-name" id="cht_img_preview_name">image.jpg</span>
+      <button class="cht-img-preview-cancel" onclick="chatClearStagedImage()" title="Remove">✕</button>
+    </div>
+
+    <div class="cht-input-area" id="cht_input_area" style="display:none;">
+      <input type="file" id="cht_img_file_input" accept="image/*"
+            style="display:none;" onchange="chatHandleImageFile(this.files[0])">
+      <button class="cht-attach-btn" onclick="document.getElementById('cht_img_file_input').click()"
+              title="Send image">
+        <i class="fa-solid fa-image"></i>
+      </button>
+      
+      <textarea id="cht_msg_input" class="cht-textarea" rows="1"
+                placeholder="Message…" maxlength="2000"></textarea>
+      <button id="cht_send_btn" class="cht-send-btn" disabled onclick="chatSendMsg()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Right panel: pinned / status / broadcast ── -->
+  <div class="cht-right-panel" id="cht_right_panel">
+    <div class="cht-rp-tabs">
+      <button class="cht-rp-tab active" onclick="chatRpTab('pinned',this)" title="Pinned">📌</button>
+      <button class="cht-rp-tab" onclick="chatRpTab('status',this)" title="Status">🟢</button>
+      <button class="cht-rp-tab cht-admin-el" style="display:none;" onclick="chatRpTab('broadcast',this)" title="Broadcast">📢</button>
+    </div>
+
+    <div class="cht-rp-panel cht-rp-active" id="cht_rp_pinned">
+      <div class="card">
+        <div class="card-header"><span class="card-title">📌 Pinned</span></div>
+        <div class="card-body" id="cht_pinned_body">
+          <div style="color:var(--text-muted);font-size:12px;">No pinned messages yet.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cht-rp-panel" id="cht_rp_status">
+      <div class="card">
+        <div class="card-header"><span class="card-title">My Status</span></div>
+        <div class="card-body">
+          <select class="form-select" id="cht_status_select" onchange="chatSetStatus(this.value)">
+            <option value="online">🟢 Online</option>
+            <option value="away">🟡 Away</option>
+            <option value="busy">🔴 Busy</option>
+          </select>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Team Status</span></div>
+        <div class="card-body" id="cht_status_board">
+          <div style="color:var(--text-muted);font-size:12px;">—</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cht-rp-panel" id="cht_rp_broadcast">
+      <div class="card">
+        <div class="card-header"><span class="card-title">📢 Broadcast</span></div>
+        <div class="card-body" style="display:flex;flex-direction:column;gap:8px;">
+          <textarea id="cht_bc_text" class="form-textarea"
+                    placeholder="Announcement to all centers…"
+                    style="min-height:80px;"></textarea>
+          <button class="btn btn-warning btn-sm" onclick="chatDoSendBroadcast()">📢 Send to All</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /.cht-container -->
+
+<!-- ── Ring alert overlay ── -->
+<div class="cht-ring-overlay" id="cht_ring_overlay" onclick="if(event.target===this)chatDismissRing()">
+  <div class="cht-ring-card">
+    <div style="font-size:3rem;margin-bottom:14px;animation:var(--transition)">🔔</div>
+    <div class="cht-ring-from" id="cht_ring_from">Incoming ring…</div>
+    <div class="cht-ring-msg"  id="cht_ring_msg">A center needs your attention.</div>
+    <div style="display:flex;gap:10px;justify-content:center;margin-top:22px;">
+      <button class="btn btn-success" onclick="chatDismissRing()">✓ Acknowledge</button>
+      <button class="btn btn-ghost"   onclick="chatDismissRing()">Dismiss</button>
+    </div>
+  </div>
+  <div class="cht-lightbox" id="cht_lightbox" onclick="this.style.display='none'">
+  <img id="cht_lightbox_img" src="" alt="">
+</div>
+</div>
+
+<!-- ═══ CHAT JAVASCRIPT ═══════════════════════════════════════════════ -->
+<script>
+'use strict';
+
+// ── State (fully isolated from CRM's APP) ────────────────────────────
+var CHAT = {
+  team        : null,
+  isAdmin     : false,
+  isCloser    : false,
+  initialized : false,
+  convTeam    : null,
+  messages    : {},     // { teamKey: [msg, ...] }
+  lastIds     : {},     // { teamKey: lastId } or { '__sub__CC': lastId }
+  centers     : [],     // ['CC01', 'CC02', ...]
+  unseenCounts: {},
+  replyTo     : null,
+  replyToTeam : null,
+  polling     : null,
+  pollMs      : 3000,
+  myStatus    : 'online',
+  stagedImage : null,   // { dataUrl, base64, mimeType, filename }
+};
+
+// ── Entry / Exit (called by CRM's showView) ──────────────────────────
+function chatInit() {
+  if (CHAT.initialized) { chatRefreshCurrent(); return; }
+
+  google.script.run
+    .withSuccessHandler(function(r) {
+      if (!r.valid) { toast('Chat session error — please reload', 'error'); return; }
+      CHAT.team     = r.team;
+      CHAT.isAdmin  = r.isAdmin;
+      CHAT.isCloser = r.isCloser;
+      CHAT.initialized = true;
+
+      document.getElementById('cht_my_avatar').textContent = chatInitials(CHAT.team);
+      document.getElementById('cht_my_name').textContent   = CHAT.team;
+      document.getElementById('cht_my_role').textContent   = r.role.toUpperCase();
+
+      if (CHAT.isAdmin) {
+        document.querySelectorAll('.cht-admin-el').forEach(function(el) { el.style.display = ''; });
+      }
+
+      chatBuildConvList();
+      CHAT.polling = setInterval(chatPoll, CHAT.pollMs);
+      chatSetStatus('online');
+    })
+    .withFailureHandler(function() { toast('Chat init failed', 'error'); })
+    .chatGetIdentity(APP.token);
+}
+
+function chatCleanup() {
+  if (CHAT.polling) { clearInterval(CHAT.polling); CHAT.polling = null; }
+}
+
+// ── Build conversation list ───────────────────────────────────────────
+function chatBuildConvList() {
+  var list = document.getElementById('cht_conv_list');
+  list.innerHTML = '';
+
+  if (CHAT.isCloser) {
+    chatAddConvItem('All Centers', '__all_teams__', 'cht-avatar-closer', true);
+    chatAddConvItem('📢 Broadcasts', '__broadcast__', 'cht-avatar-broadcast', false);
+
+    google.script.run
+      .withSuccessHandler(function(r) {
+        if (!r.success) return;
+        CHAT.centers = r.centers.map(function(c) { return c.centerCode; });
+        if (CHAT.centers.length) {
+          var lbl = document.createElement('div');
+          lbl.className = 'cht-section-label'; lbl.textContent = 'Centers';
+          list.appendChild(lbl);
+          CHAT.centers.forEach(function(cc) {
+            chatAddConvItem(cc, cc, 'cht-avatar-center', false);
+          });
+          chatPoll('__all_teams__');
+        }
+      })
+      .withFailureHandler(function(){})
+      .chatGetCenters(APP.token);
+  } else {
+    chatAddConvItem('Closing Team', 'Closing Team', 'cht-avatar-closer', true);
+    chatAddConvItem('📢 Broadcasts', '__broadcast__', 'cht-avatar-broadcast', false);
+  }
+}
+
+function chatAddConvItem(name, teamKey, avatarCls, autoOpen) {
+  var list = document.getElementById('cht_conv_list');
+  var sid  = chatSid(teamKey);
+  var btn  = document.createElement('button');
+  btn.className = 'cht-conv-item';
+  btn.dataset.team = teamKey;
+  btn.innerHTML =
+    '<div class="cht-avatar ' + avatarCls + '" id="cht_cav_' + sid + '">' + chatInitials(name) + '</div>' +
+    '<div class="cht-conv-info">' +
+      '<div class="cht-conv-name">' + chatEsc(name) + '</div>' +
+      '<div class="cht-conv-preview" id="cht_prev_' + sid + '">No messages yet</div>' +
+    '</div>' +
+    '<div class="cht-conv-meta">' +
+      '<div class="cht-conv-time" id="cht_ctime_' + sid + '"></div>' +
+      '<div class="cht-unread-badge" id="cht_ubadge_' + sid + '"></div>' +
+    '</div>';
+  btn.addEventListener('click', function() { chatOpenConv(teamKey, btn, name, avatarCls); });
+  list.appendChild(btn);
+  if (autoOpen) setTimeout(function() { btn.click(); }, 250);
+}
+
+// ── Open conversation ─────────────────────────────────────────────────
+function chatOpenConv(teamKey, btn, name, cls) {
+  CHAT.convTeam = teamKey;
+  CHAT.unseenCounts[teamKey] = 0;
+
+  var ubadge = document.getElementById('cht_ubadge_' + chatSid(teamKey));
+  if (ubadge) ubadge.textContent = '';
+
+  document.querySelectorAll('.cht-conv-item').forEach(function(i) { i.classList.remove('active'); });
+  btn.classList.add('active');
+
+  document.getElementById('cht_h_avatar').textContent  = chatInitials(name);
+  document.getElementById('cht_h_avatar').className    = 'cht-h-avatar ' + (cls || 'cht-avatar-center');
+  document.getElementById('cht_h_name').textContent    = name;
+  document.getElementById('cht_h_status').textContent  =
+    teamKey === '__all_teams__' ? 'Unified view — all centers' :
+    teamKey === '__broadcast__' ? 'Admin broadcasts to all teams' : 'Active';
+
+  var ringBtn   = document.getElementById('cht_ring_btn');
+  var inputArea = document.getElementById('cht_input_area');
+  ringBtn.style.display   = (!CHAT.isCloser && teamKey === 'Closing Team') ? 'flex' : 'none';
+  inputArea.style.display = (teamKey === '__broadcast__' && !CHAT.isAdmin) ? 'none' : 'flex';
+
+  // Render cached messages
+  var scroll = document.getElementById('cht_messages');
+  scroll.innerHTML = '';
+  var cached = CHAT.messages[teamKey] || [];
+  if (cached.length) {
+    cached.forEach(function(m) { scroll.appendChild(chatBuildEl(m, teamKey)); });
+    chatScrollBottom();
+  } else {
+    scroll.innerHTML = '<div class="cht-empty"><i class="fa-solid fa-comments" style="font-size:32px;opacity:.15;margin-bottom:10px;"></i><div>No messages yet</div></div>';
+  }
+
+  chatCancelReply();
+  setTimeout(function() { document.getElementById('cht_msg_input').focus(); }, 150);
+  chatPoll(teamKey);
+  chatLoadPinned();
+}
+
+// ── Polling ───────────────────────────────────────────────────────────
+function chatPoll(specificTeam) {
+  if (!APP.token) return;
+  var target = specificTeam || CHAT.convTeam;
+  if (!target) return;
+
+  if (target === '__all_teams__') {
+    CHAT.centers.forEach(function(cc) {
+      var afterId = CHAT.lastIds['__sub__' + cc] || 0;
+      google.script.run
+        .withSuccessHandler(function(r) {
+          if (r && r.success && r.messages.length) chatHandleAllTeams(r.messages, cc);
+        })
+        .withFailureHandler(function(){})
+        .chatGetMessages(APP.token, cc, afterId);
+    });
+  } else if (target !== '__all_teams__') {
+    var afterId = CHAT.lastIds[target] || 0;
+    google.script.run
+      .withSuccessHandler(function(r) {
+        if (r && r.success && r.messages.length) chatHandleIncoming(r.messages, target);
+      })
+      .withFailureHandler(function(){})
+      .chatGetMessages(APP.token, target, afterId);
+  }
+
+  // Ring check for closers/admins
+  if (CHAT.isCloser) {
+    google.script.run
+      .withSuccessHandler(function(r) { if (r && r.pending) chatShowRingOverlay(r); })
+      .withFailureHandler(function(){})
+      .chatCheckRing(APP.token);
+  }
+}
+
+// ── Incoming message handlers ─────────────────────────────────────────
+function chatHandleAllTeams(msgs, sourceTeam) {
+  var KEY = '__all_teams__';
+  if (!CHAT.messages[KEY]) CHAT.messages[KEY] = [];
+
+  var incoming = msgs.filter(function(m) {
+    return !CHAT.messages[KEY].find(function(x) { return x.id === m.id; });
+  });
+  if (!incoming.length) return;
+
+  incoming.forEach(function(m) {
+    var enriched = Object.assign({}, m, { _sourceTeam: sourceTeam });
+    CHAT.messages[KEY].push(enriched);
+    if (m.id > (CHAT.lastIds['__sub__' + sourceTeam] || 0))
+      CHAT.lastIds['__sub__' + sourceTeam] = m.id;
+  });
+  CHAT.messages[KEY].sort(function(a, b) { return new Date(a.timestamp) - new Date(b.timestamp); });
+
+  var last = incoming[incoming.length - 1];
+  chatUpdatePreview(KEY, '[' + sourceTeam + '] ' + last.message.slice(0, 32), last.timestamp);
+
+  if (CHAT.convTeam === KEY) {
+    chatRerenderUnified();
+  } else {
+    chatBumpUnread(KEY, incoming.length);
+  }
+}
+
+function chatHandleIncoming(msgs, teamKey) {
+  if (!CHAT.messages[teamKey]) CHAT.messages[teamKey] = [];
+
+  var incoming = msgs.filter(function(m) {
+    return !CHAT.messages[teamKey].find(function(x) { return x.id === m.id; });
+  });
+  if (!incoming.length) return;
+
+  incoming.forEach(function(m) {
+    CHAT.messages[teamKey].push(m);
+    if (m.id > (CHAT.lastIds[teamKey] || 0)) CHAT.lastIds[teamKey] = m.id;
+  });
+
+  var last = incoming[incoming.length - 1];
+  chatUpdatePreview(teamKey, last.message.slice(0, 42), last.timestamp);
+
+  if (teamKey === CHAT.convTeam) {
+    var scroll = document.getElementById('cht_messages');
+    var atBot  = scroll.scrollHeight - scroll.scrollTop - scroll.clientHeight < 80;
+    var empty  = scroll.querySelector('.cht-empty');
+    if (empty) empty.remove();
+    incoming.forEach(function(m) { scroll.appendChild(chatBuildEl(m, teamKey)); });
+    if (atBot) chatScrollBottom();
+  } else {
+    chatBumpUnread(teamKey, incoming.length);
+  }
+}
+
+function chatRerenderUnified() {
+  var scroll = document.getElementById('cht_messages');
+  var atBot  = scroll.scrollHeight - scroll.scrollTop - scroll.clientHeight < 80;
+  scroll.innerHTML = '';
+  var msgs = CHAT.messages['__all_teams__'] || [];
+  if (!msgs.length) {
+    scroll.innerHTML = '<div class="cht-empty"><i class="fa-solid fa-comments" style="font-size:32px;opacity:.15;margin-bottom:10px;"></i><div>No messages yet</div></div>';
+    return;
+  }
+  msgs.forEach(function(m) { scroll.appendChild(chatBuildEl(m, '__all_teams__')); });
+  if (atBot) chatScrollBottom();
+}
+
+function chatUpdatePreview(teamKey, text, ts) {
+  var p = document.getElementById('cht_prev_'  + chatSid(teamKey));
+  var t = document.getElementById('cht_ctime_' + chatSid(teamKey));
+  if (p) p.textContent = text;
+  if (t) t.textContent = chatFmtTime(ts);
+}
+function chatBumpUnread(teamKey, n) {
+  CHAT.unseenCounts[teamKey] = (CHAT.unseenCounts[teamKey] || 0) + n;
+  var b = document.getElementById('cht_ubadge_' + chatSid(teamKey));
+  if (b) b.textContent = CHAT.unseenCounts[teamKey];
+}
+
+// ── Build message element ─────────────────────────────────────────────
+function chatBuildEl(m, teamKey) {
+  var isUnified = (teamKey === '__all_teams__');
+  var isBroadcast = (m.type === 'broadcast');
+  var isMine;
+  if (isUnified) {
+    isMine = (m.team === 'Closing Team' || m.team === 'ICO Admin');
+  } else {
+    isMine = CHAT.isCloser
+      ? (m.team === 'Closing Team' || m.team === 'ICO Admin')
+      : (m.team === CHAT.team);
+  }
+
+  var wrapper = document.createElement('div');
+  wrapper.className = 'cht-msg-wrap ' + (isBroadcast ? 'cht-broadcast' : isMine ? 'cht-mine' : 'cht-theirs');
+  wrapper.dataset.id = m.id;
+  if (m._sourceTeam) wrapper.dataset.sourceTeam = m._sourceTeam;
+
+  // Team tag or sender label
+  if (isUnified && !isBroadcast) {
+    var tag = document.createElement('div');
+    tag.className = 'cht-team-tag' + (isMine ? ' is-mine' : '');
+    tag.textContent = isMine ? '📞 Closing Team' : ('🏢 ' + m.team);
+    wrapper.appendChild(tag);
+  } else if (!isMine && !isBroadcast) {
+    var sd = document.createElement('div');
+    sd.className = 'cht-msg-sender';
+    sd.textContent = m.team;
+    wrapper.appendChild(sd);
+  } else if (isBroadcast) {
+    var bd = document.createElement('div');
+    bd.className = 'cht-msg-sender';
+    bd.textContent = '📢 Admin Broadcast';
+    wrapper.appendChild(bd);
+  }
+
+  var bubble = document.createElement('div');
+  bubble.className = 'cht-bubble';
+
+  // Action buttons (hover)
+    var acts = document.createElement('div');
+      acts.className = 'cht-msg-actions';
+
+      // ── Reply button — use data attrs to avoid inline-string escaping issues ──
+      var replyBtn = document.createElement('button');
+      replyBtn.className = 'cht-act-btn';
+      replyBtn.textContent = '↩ Reply';
+      replyBtn.dataset.msgId   = m.id;
+      replyBtn.dataset.msgText = (m.message || '').slice(0, 60);   // raw, no escaping
+      replyBtn.dataset.msgTeam = m.team;
+      replyBtn.dataset.msgSrc  = m._sourceTeam || m.team;
+      replyBtn.addEventListener('click', function () {
+        chatSetReply(
+          Number(this.dataset.msgId),
+          this.dataset.msgText,
+          this.dataset.msgTeam,
+          this.dataset.msgSrc
+        );
+      });
+      acts.appendChild(replyBtn);
+
+      if (CHAT.isAdmin) {
+        if (!m.forwarded) {
+          var fwdBtn = document.createElement('button');
+          fwdBtn.className = 'cht-act-btn';
+          fwdBtn.textContent = '↗ Fwd';
+          fwdBtn.addEventListener('click', function () { chatDoFwd(m.id, fwdBtn); });
+          acts.appendChild(fwdBtn);
+        }
+        var pinBtn = document.createElement('button');
+        pinBtn.className = 'cht-act-btn';
+        pinBtn.textContent = m.pinned ? 'Unpin' : '📌 Pin';
+        pinBtn.addEventListener('click', function () { chatDoPin(m.id, !m.pinned, pinBtn); });
+        acts.appendChild(pinBtn);
+
+        var delBtn = document.createElement('button');
+        delBtn.className = 'cht-act-btn cht-del-btn';
+        delBtn.textContent = '🗑';
+        delBtn.addEventListener('click', function () { chatDoDel(m.id, delBtn); });
+        acts.appendChild(delBtn);
+      }
+
+      bubble.appendChild(acts);
+
+  // Reply quote
+  if (m.replyTo) {
+    var rq = document.createElement('div');
+    rq.className = 'cht-reply-quote';
+    rq.textContent = m.replyTo;
+    bubble.appendChild(rq);
+  }
+
+// Message body — image or text
+  var body = document.createElement('div');
+  if (m.type === 'image') {
+    var img = document.createElement('img');
+    img.className = 'cht-img-bubble';
+    img.src = m.message;
+    img.alt = 'image';
+    img.loading = 'lazy';
+    img.addEventListener('click', function() {
+      document.getElementById('cht_lightbox_img').src = m.message;
+      document.getElementById('cht_lightbox').style.display = 'flex';
+    });
+    body.appendChild(img);
+  } else {
+    body.innerHTML = m.message
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/ \| /g, "<br>");   // ← also fixed the \\n bug here
+  }
+  bubble.appendChild(body);
+
+  // Status chips
+  if (m.forwarded || m.pinned) {
+    var chips = document.createElement('div');
+    chips.style.cssText = 'margin-top:5px;font-size:10px;color:var(--text-muted)';
+    chips.textContent = (m.forwarded ? '↗ Fwd  ' : '') + (m.pinned ? '📌' : '');
+    bubble.appendChild(chips);
+  }
+
+  wrapper.appendChild(bubble);
+
+  var ts = document.createElement('div');
+  ts.className = 'cht-ts-row';
+  ts.textContent = chatFmtTime(m.timestamp);
+  wrapper.appendChild(ts);
+
+  return wrapper;
+}
+
+// ── Send ──────────────────────────────────────────────────────────────
+function chatSendMsg() {
+  // ── Image takes priority over text ──
+  if (CHAT.stagedImage) { chatDoSendImage(); return; }
+  var text = document.getElementById('cht_msg_input').value.trim();
+  if (!text || !CHAT.convTeam) return;
+
+  if (CHAT.convTeam === '__all_teams__' && !CHAT.replyToTeam) {
+    if (!CHAT.isAdmin) {
+      toast('Tap ↩ Reply on a message first to route your response', 'warning');
+      return;
+    }
+    // Admin: treat as broadcast
+    chatDoActualSend(text, '__broadcast__', null, '__all_teams__');
+    return;
+  }
+
+  var actualTo   = CHAT.convTeam === '__all_teams__' ? CHAT.replyToTeam : CHAT.convTeam;
+  var replyText  = CHAT.replyTo ? CHAT.replyTo.text : null;
+  chatDoActualSend(text, actualTo, replyText, CHAT.convTeam);
+  chatCancelReply();
+}
+
+function chatDoActualSend(text, toTeam, replyText, displayKey) {
+  var inputEl  = document.getElementById('cht_msg_input');
+  var sendBtn  = document.getElementById('cht_send_btn');
+  var scroll   = document.getElementById('cht_messages');
+
+  // Optimistic message
+  var opt = {
+    id: Date.now(), timestamp: new Date().toISOString(),
+    team: CHAT.team, message: text, forwarded: false,
+    type: toTeam === '__broadcast__' ? 'broadcast' : 'message',
+    pinned: false, replyTo: replyText, _sourceTeam: CHAT.team,
+  };
+  if (!CHAT.messages[displayKey]) CHAT.messages[displayKey] = [];
+  CHAT.messages[displayKey].push(opt);
+
+  var empty = scroll.querySelector('.cht-empty');
+  if (empty) empty.remove();
+  scroll.appendChild(chatBuildEl(opt, displayKey));
+  chatScrollBottom();
+
+  inputEl.value = ''; inputEl.style.height = 'auto'; sendBtn.disabled = true;
+
+  var fn   = toTeam === '__broadcast__' ? 'chatBroadcast' : 'chatSendMessage';
+  var args = toTeam === '__broadcast__' ? [APP.token, text] : [APP.token, toTeam, text, replyText];
+
+  google.script.run
+    .withSuccessHandler(function(r) {
+      sendBtn.disabled = false;
+      if (!r.success) toast(r.error || 'Send failed', 'error');
+      if (r.id) {
+        var idx = (CHAT.messages[displayKey] || []).findIndex(function(m) { return m.id === opt.id; });
+        if (idx > -1) CHAT.messages[displayKey][idx].id = r.id;
+      }
+    })
+    .withFailureHandler(function() {
+      toast('Send failed', 'error');
+      sendBtn.disabled = false;
+      var bad = scroll.querySelector('[data-id="' + opt.id + '"]');
+      if (bad) bad.remove();
+      CHAT.messages[displayKey] = (CHAT.messages[displayKey] || []).filter(function(m) { return m.id !== opt.id; });
+    })[fn].apply(null, args);
+}
+
+// ── Reply ─────────────────────────────────────────────────────────────
+function chatSetReply(id, text, fromTeam, sourceTeam) {
+  CHAT.replyTo = { id: id, text: text };
+  CHAT.replyToTeam = sourceTeam || fromTeam;
+  document.getElementById('cht_reply_preview').textContent = '↩ ' + text;
+  document.getElementById('cht_reply_banner').style.display = 'flex';
+  var route = document.getElementById('cht_reply_route');
+  if (CHAT.convTeam === '__all_teams__' && CHAT.replyToTeam) {
+    route.textContent = '→ ' + CHAT.replyToTeam; route.style.display = 'inline';
+  } else {
+    route.style.display = 'none';
+  }
+  document.getElementById('cht_msg_input').focus();
+}
+function chatCancelReply() {
+  CHAT.replyTo = null; CHAT.replyToTeam = null;
+  document.getElementById('cht_reply_banner').style.display = 'none';
+}
+
+// ── Admin actions ─────────────────────────────────────────────────────
+function chatDoFwd(id, btn) {
+  btn.disabled = true; btn.textContent = '…';
+  google.script.run
+    .withSuccessHandler(function(r) {
+      if (r.success) { toast('Forwarded', 'success'); chatRefreshCurrent(); }
+      else { toast(r.error, 'error'); btn.disabled = false; btn.textContent = '↗ Fwd'; }
+    })
+    .withFailureHandler(function() { toast('Failed', 'error'); btn.disabled = false; })
+    .chatForwardMessage(APP.token, id);
+}
+function chatDoPin(id, pin, btn) {
+  btn.disabled = true; btn.textContent = '…';
+  google.script.run
+    .withSuccessHandler(function(r) {
+      if (r.success) { toast(pin ? 'Pinned' : 'Unpinned', 'success'); chatRefreshCurrent(); chatLoadPinned(); }
+      else { toast(r.error, 'error'); btn.disabled = false; }
+    })
+    .withFailureHandler(function() { toast('Failed', 'error'); btn.disabled = false; })
+    .chatPinMessage(APP.token, id, pin);
+}
+function chatDoDel(id, btn) {
+  if (!confirm('Delete this message?')) return;
+  btn.disabled = true;
+  google.script.run
+    .withSuccessHandler(function(r) {
+      if (r.success) {
+        var el2 = document.getElementById('cht_messages').querySelector('[data-id="' + id + '"]');
+        if (el2) el2.remove();
+        if (CHAT.messages[CHAT.convTeam])
+          CHAT.messages[CHAT.convTeam] = CHAT.messages[CHAT.convTeam].filter(function(m) { return m.id !== id; });
+        toast('Deleted', 'success');
+      } else { toast(r.error, 'error'); btn.disabled = false; }
+    })
+    .withFailureHandler(function() { toast('Failed', 'error'); btn.disabled = false; })
+    .chatDeleteMessage(APP.token, id);
+}
+function chatDoSendBroadcast() {
+  var text = document.getElementById('cht_bc_text').value.trim();
+  if (!text) { toast('Enter broadcast text', 'warning'); return; }
+  google.script.run
+    .withSuccessHandler(function(r) {
+      if (r.success) { document.getElementById('cht_bc_text').value = ''; toast('Broadcast sent!', 'success'); }
+      else toast(r.error, 'error');
+    })
+    .withFailureHandler(function() { toast('Failed', 'error'); })
+    .chatBroadcast(APP.token, text);
+}
+
+// ── Ring ──────────────────────────────────────────────────────────────
+function chatDoSendRing() {
+  var btn = document.getElementById('cht_ring_btn');
+  btn.disabled = true;
+  google.script.run
+    .withSuccessHandler(function(r) {
+      if (r.success) toast('🔔 Closing team alerted!', 'success');
+      else toast(r.error, 'error');
+      setTimeout(function() { btn.disabled = false; }, 5000);
+    })
+    .withFailureHandler(function() { toast('Ring failed', 'error'); btn.disabled = false; })
+    .chatSendRing(APP.token);
+}
+function chatShowRingOverlay(ring) {
+  document.getElementById('cht_ring_from').textContent = '📞 ' + ring.fromTeam + ' is ringing!';
+  document.getElementById('cht_ring_overlay').style.display = 'flex';
+
+  // Play chime sound via Web Audio (no external file needed)
+  function _playChime() {
+    try {
+      var ctx = new (window.AudioContext || window.webkitAudioContext)();
+      function _bell(freq, t, dur) {
+        var o = ctx.createOscillator(), g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.type = 'sine';
+        o.frequency.setValueAtTime(freq, t);
+        g.gain.setValueAtTime(0.55, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+        o.start(t); o.stop(t + dur);
+      }
+      var n = ctx.currentTime;
+      _bell(880, n,       1.2);
+      _bell(660, n + 0.5, 1.2);
+      _bell(880, n + 1.0, 1.5);
+    } catch(e) {}
+  }
+  _playChime();
+  // Repeat once if still open
+  setTimeout(function() {
+    if (document.getElementById('cht_ring_overlay').style.display !== 'none') _playChime();
+  }, 2800);
+}
+function chatDismissRing() {
+  document.getElementById('cht_ring_overlay').style.display = 'none';
+  google.script.run.withFailureHandler(function(){}).chatClearRing(APP.token);
+}
+
+// ── Status ────────────────────────────────────────────────────────────
+function chatSetStatus(status) {
+  CHAT.myStatus = status;
+  var emojis = { online: '🟢', away: '🟡', busy: '🔴' };
+  document.getElementById('cht_status_toggle').textContent = emojis[status] || '🟢';
+  document.getElementById('cht_status_select').value = status;
+  google.script.run.withFailureHandler(function(){}).chatUpdateStatus(APP.token, status);
+}
+function chatCycleStatus() {
+  var next = CHAT.myStatus === 'online' ? 'away' : CHAT.myStatus === 'away' ? 'busy' : 'online';
+  chatSetStatus(next);
+}
+function chatRefreshStatusBoard() {
+  google.script.run
+    .withSuccessHandler(function(r) {
+      var board = document.getElementById('cht_status_board');
+      if (!r.success || !r.statuses.length) { board.innerHTML = '<div style="color:var(--text-muted);font-size:12px;">No data.</div>'; return; }
+      var dot = { online: '🟢', away: '🟡', busy: '🔴' };
+      board.innerHTML = r.statuses.map(function(s) {
+        return '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px;">' +
+          '<span>' + (dot[s.status] || '⚫') + '</span>' +
+          '<span style="flex:1;font-weight:600;color:var(--text-primary)">' + chatEsc(s.team) + '</span>' +
+          '<span style="color:var(--text-muted)">' + (s.status || 'offline') + '</span></div>';
+      }).join('');
+    })
+    .withFailureHandler(function(){})
+    .chatGetStatuses(APP.token);
+}
+
+// ── Pinned ────────────────────────────────────────────────────────────
+function chatLoadPinned() {
+  google.script.run
+    .withSuccessHandler(function(r) {
+      var body = document.getElementById('cht_pinned_body');
+      if (!r.success || !r.messages.length) {
+        body.innerHTML = '<div style="color:var(--text-muted);font-size:12px;">No pinned messages yet.</div>';
+        return;
+      }
+      body.innerHTML = r.messages.map(function(m) {
+        return '<div style="padding:10px;background:var(--bg-surface2);border-radius:8px;margin-bottom:8px;border-left:3px solid var(--warning)">' +
+          '<div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;">' + chatEsc(m.team) + ' · ' + chatFmtTime(m.timestamp) + '</div>' +
+          '<div style="font-size:12.5px;color:var(--text-primary)">' + chatEsc(m.message) + '</div></div>';
+      }).join('');
+    })
+    .withFailureHandler(function(){})
+    .chatGetPinned(APP.token);
+}
+
+// ── Right panel tabs ──────────────────────────────────────────────────
+function chatRpTab(name, btn) {
+  document.querySelectorAll('.cht-rp-tab').forEach(function(b) { b.classList.remove('active'); });
+  document.querySelectorAll('.cht-rp-panel').forEach(function(p) { p.classList.remove('cht-rp-active'); });
+  btn.classList.add('active');
+  document.getElementById('cht_rp_' + name).classList.add('cht-rp-active');
+  if (name === 'status') chatRefreshStatusBoard();
+}
+
+// ── Refresh ───────────────────────────────────────────────────────────
+function chatRefreshCurrent() {
+  if (!CHAT.convTeam) return;
+  if (CHAT.convTeam === '__all_teams__') {
+    CHAT.messages['__all_teams__'] = [];
+    CHAT.centers.forEach(function(cc) { CHAT.lastIds['__sub__' + cc] = 0; });
+  } else {
+    CHAT.messages[CHAT.convTeam] = [];
+    CHAT.lastIds[CHAT.convTeam] = 0;
+  }
+  document.getElementById('cht_messages').innerHTML = '';
+  chatPoll(CHAT.convTeam);
+}
+
+// ── Input listeners ───────────────────────────────────────────────────
+(function() {
+  var inp = document.getElementById('cht_msg_input');
+  var snd = document.getElementById('cht_send_btn');
+
+  // FIX 1: enable send button as user types
+  inp.addEventListener('input', function() {
+    snd.disabled = inp.value.trim().length === 0 && !CHAT.stagedImage;
+    inp.style.height = 'auto';
+    inp.style.height = Math.min(inp.scrollHeight, 120) + 'px';
+  });
+
+  // Send on Enter, newline on Shift+Enter
+  inp.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (!snd.disabled) chatSendMsg();
+    }
+  });
+
+  // Paste image from clipboard
+  inp.addEventListener('paste', function(e) {
+    var items = (e.clipboardData || {}).items || [];
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith('image/')) {
+        e.preventDefault();
+        chatStageImage(items[i].getAsFile());
+        return;
+      }
+    }
+    // Not an image — let normal text paste happen
+  });
+
+  // FIX 4: Drag & drop images onto the chat area
+  var mainArea = document.getElementById('cht_main');
+  mainArea.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+    mainArea.style.outline = '2px dashed var(--accent-primary)';
+    mainArea.style.outlineOffset = '-4px';
+  });
+  mainArea.addEventListener('dragleave', function(e) {
+    if (!mainArea.contains(e.relatedTarget)) {
+      mainArea.style.outline = '';
+      mainArea.style.outlineOffset = '';
+    }
+  });
+  mainArea.addEventListener('drop', function(e) {
+    e.preventDefault();
+    mainArea.style.outline = '';
+    mainArea.style.outlineOffset = '';
+    var files = e.dataTransfer.files;
+    if (files && files.length > 0 && files[0].type.startsWith('image/')) {
+      chatStageImage(files[0]);
+    }
+  });
+})();
+
+// ── Image upload ──────────────────────────────────────────────────────────────
+
+// Called when user picks a file via the button
+function chatHandleImageFile(file) {
+  if (!file || !file.type.startsWith('image/')) return;
+  chatStageImage(file);
+  // Reset file input so same file can be re-selected
+  document.getElementById('cht_img_file_input').value = '';
+}
+
+// Resize + stage image for preview before sending
+function chatStageImage(file) {
+  var MAX_PX = 1400;
+  var reader  = new FileReader();
+  reader.onload = function(e) {
+    var origDataUrl = e.target.result;
+    var image = new Image();
+    image.onload = function() {
+      var w = image.width, h = image.height;
+      if (w > MAX_PX || h > MAX_PX) {
+        var ratio = Math.min(MAX_PX / w, MAX_PX / h);
+        w = Math.round(w * ratio);
+        h = Math.round(h * ratio);
+      }
+      var canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(image, 0, 0, w, h);
+      var dataUrl  = canvas.toDataURL('image/jpeg', 0.82);
+      var base64   = dataUrl.split(',')[1];
+      CHAT.stagedImage = { dataUrl: dataUrl, base64: base64, mimeType: 'image/jpeg', filename: file.name || 'screenshot.jpg' };
+
+      // Show preview bar
+      document.getElementById('cht_img_preview_thumb').src = dataUrl;
+      document.getElementById('cht_img_preview_name').textContent = CHAT.stagedImage.filename;
+      document.getElementById('cht_img_preview_bar').style.display = 'flex';
+      document.getElementById('cht_send_btn').disabled = false;
+    };
+    image.src = origDataUrl;
+  };
+  reader.readAsDataURL(file);
+}
+
+function chatClearStagedImage() {
+  CHAT.stagedImage = null;
+  document.getElementById('cht_img_preview_bar').style.display = 'none';
+  document.getElementById('cht_img_preview_thumb').src = '';
+  // Re-evaluate send button state
+  var inp = document.getElementById('cht_msg_input');
+  document.getElementById('cht_send_btn').disabled = inp.value.trim().length === 0;
+}
+
+// Upload staged image to Drive via backend, then store as message
+function chatDoSendImage() {
+  if (!CHAT.stagedImage || !CHAT.convTeam) return;
+  var sendBtn = document.getElementById('cht_send_btn');
+  sendBtn.disabled = true;
+  sendBtn.classList.add('uploading');
+
+  var img        = CHAT.stagedImage;
+  var actualTo   = CHAT.convTeam === '__all_teams__' ? (CHAT.replyToTeam || null) : CHAT.convTeam;
+  var replyText  = CHAT.replyTo ? CHAT.replyTo.text : null;
+
+  // Optimistic: show local preview immediately
+  var displayKey = CHAT.convTeam;
+  var opt = {
+    id: Date.now(), timestamp: new Date().toISOString(),
+    team: CHAT.team, message: img.dataUrl, forwarded: false,
+    type: 'image', pinned: false, replyTo: replyText, _sourceTeam: CHAT.team,
+  };
+  if (!CHAT.messages[displayKey]) CHAT.messages[displayKey] = [];
+  CHAT.messages[displayKey].push(opt);
+  var scroll = document.getElementById('cht_messages');
+  var empty  = scroll.querySelector('.cht-empty');
+  if (empty) empty.remove();
+  scroll.appendChild(chatBuildEl(opt, displayKey));
+  chatScrollBottom();
+
+  chatClearStagedImage();
+  chatCancelReply();
+
+  google.script.run
+    .withSuccessHandler(function(r) {
+      sendBtn.classList.remove('uploading');
+      sendBtn.disabled = false;
+      if (!r.success) {
+        toast(r.error || 'Image upload failed', 'error');
+        // Remove optimistic bubble
+        var bad = scroll.querySelector('[data-id="' + opt.id + '"]');
+        if (bad) bad.remove();
+      } else {
+        // Replace local dataUrl with permanent Drive URL in cache
+        var idx = (CHAT.messages[displayKey] || []).findIndex(function(m) { return m.id === opt.id; });
+        if (idx > -1) {
+          CHAT.messages[displayKey][idx].id      = r.id;
+          CHAT.messages[displayKey][idx].message = r.url;
+        }
+      }
+    })
+    .withFailureHandler(function() {
+      sendBtn.classList.remove('uploading');
+      sendBtn.disabled = false;
+      toast('Image upload failed', 'error');
+    })
+    .chatUploadImage(APP.token, actualTo, img.base64, img.mimeType, img.filename, replyText);
+}
+// ── Utilities ─────────────────────────────────────────────────────────
+function chatEsc(str) {
+  var d = document.createElement('div');
+  d.textContent = String(str || '');
+  return d.innerHTML;
+}
+function chatInitials(name) {
+  return (String(name || '?')).split(/\s+/).map(function(w) { return w[0] || ''; }).join('').toUpperCase().slice(0, 2) || '?';
+}
+function chatSid(str)     { return String(str || '').replace(/[^a-zA-Z0-9]/g, '_'); }
+function chatFmtTime(iso) { try { return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); } catch(_) { return ''; } }
+function chatScrollBottom() { requestAnimationFrame(function() { var el = document.getElementById('cht_messages'); if (el) el.scrollTop = el.scrollHeight; }); }
+</script>
