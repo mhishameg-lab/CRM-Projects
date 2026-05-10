@@ -281,13 +281,13 @@
             <table class="data-table">
               <thead>
                 <tr>
-                  <th>Lead ID</th>
                   <th>Date</th>
                   <th>Patient Name</th>
                   <th>Phone</th>
                   <th>Lead Status</th>
                   <th>Chaser Status</th>
                   <th>Processing</th>
+                  <th>Processing Note</th>
                   <th class="admin-only hidden">Center</th>
                   <th>Lead Type</th>
                 </tr>
@@ -1442,13 +1442,13 @@ function renderLeadsTable(leads) {
 
   var rows = leads.map(function(l) {
     return '<tr onclick="openLead(\'' + esc(l.leadId) + '\')">' +
-      '<td class="mono" style="font-size:11px;">' + esc(l.leadId) + '</td>' +
       '<td>' + esc(l.date) + '</td>' +
       '<td class="name-cell">' + esc(l.fullName || '—') + '</td>' +
       '<td class="phone-cell">' + esc(l.phone || '—') + '</td>' +
       '<td>' + leadStatusBadge(l.leadStatus) + '</td>' +
       '<td>' + chaserStatusBadge(l.chaserStatus) + '</td>' +
       '<td>' + processingStatusBadge(l.processingStatusCenters) + '</td>' +
+      '<td>' + esc(l.chaserNote || '—') + '</td>' +
       (isAdmin ? '<td class="mono" style="font-size:12px;">' + esc(l.centerCode || '—') + '</td>' : '') +
       '<td>' + (l.leadType ? '<span class="badge badge-info">' + esc(l.leadType) + '</span>' : '—') + '</td>' +
       '</tr>';
