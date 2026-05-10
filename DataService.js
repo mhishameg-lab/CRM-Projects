@@ -356,6 +356,8 @@ function getLeads(token, options) {
         leadStatus             : String(row[COL.LEAD_STATUS]               || ''),
         chaserStatus           : String(row[COL.CHASER_STATUS]             || ''),
         processingStatusCenters: String(row[COL.PROCESSING_STATUS_CENTERS] || ''),
+        closingNotes           : String(row[COL.CLOSING_NOTES]             || ''),
+        chaserNote             : String(row[COL.CHASER_NOTE]               || ''),
         leadType               : String(row[COL.LEAD_TYPE]                 || ''),
       };
     });

@@ -1440,7 +1440,7 @@ function renderLeadsTable(leads) {
   count.textContent = leads.length + ' record' + (leads.length !== 1 ? 's' : '') + ' on this page';
 
   var rows = leads.map(function(l) {
-    var processingTooltip = l.closingNotes || l.chaserNote || '';
+    var processingTooltip = String(l.closingNotes || l.chaserNote || '').trim();
     return '<tr onclick="openLead(\'' + esc(l.leadId) + '\')">' +
       '<td>' + esc(l.date) + '</td>' +
       '<td class="name-cell">' + esc(l.fullName || '—') + '</td>' +
